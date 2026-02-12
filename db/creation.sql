@@ -24,6 +24,7 @@ CREATE TABLE line(
 CREATE TABLE work_week(
        id INT UNSIGNED AUTO_INCREMENT,
        date DATETIME NOT NULL,
+       CONSTRAINT chk_date CHECK (WEEKDAY(date) = 0),
        PRIMARY KEY (id)
 );
 
@@ -48,7 +49,7 @@ CREATE TABLE line_role(
 
 CREATE TABLE work_day(
        id INT UNSIGNED AUTO_INCREMENT,
-       week_id INT UNSIGNED NOT NULL,
+       week_id INT UNSIGNED,
        PRIMARY KEY (id),
        CONSTRAINT wd_fk_week_id FOREIGN KEY (week_id) REFERENCES work_week(id)
        ON DELETE CASCADE
