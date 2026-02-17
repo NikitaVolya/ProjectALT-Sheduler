@@ -2,63 +2,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "database/worker_model.h"
 
+int find_worker_by_id(void *value) {
+    WorkerModel *worker = (WorkerModel *) value;
 
-void read_table_test(MYSQL *conn) {
-    MYSQL_STMT *stmt;
-    MYSQL_BIND bind[1];
-    char name[256];
-    unsigned long name_length;
-    my_bool is_null;
-
-    if ((stmt = mysql_stmt_init(conn)) == NULL) {
-        fprintf(stderr, "Error while initialize mysql stmt\n");
-        return;
-    }
-    
-    if (mysql_stmt_prepare(stmt, "SELECT name FROM test;", 23)) {
-        fprintf(stderr, "Error while preparing query\n");
-        mysql_stmt_close(stmt);
-        return;
-    }
-
-    if (mysql_stmt_execute(stmt)) {
-        fprintf(stderr, "Error while executing query\n");
-        mysql_stmt_close(stmt);
-        return;
-    }
-    memset(bind, 0, sizeof(bind));
-    bind[0].buffer_type   = MYSQL_TYPE_STRING;
-    bind[0].buffer        = name;
-    bind[0].buffer_length = sizeof(name);
-    bind[0].length        = &name_length;
-    bind[0].is_null       = &is_null;
-
-    if (mysql_stmt_bind_result(stmt, bind)) {
-        fprintf(stderr, "Bind result failed: %s\n", mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return;
-    }
-
-    if (mysql_stmt_store_result(stmt)) {
-        fprintf(stderr, "Store result failed: %s\n", mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return;
-    }
-
-    while (mysql_stmt_fetch(stmt) == 0) {
-        name[name_length] = '\0';
-        printf("Name: %s\n", name);
-    }
-
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
+    return worker->id == 58;
 }
 
 int main() {
     MYSQL *conn;
-
-
+    WorkerModel *worker = NULL;
+    size_t i;
     
     if (!(conn = mysql_init(0))) {
         fprintf(stderr, "unable to initialize connection struct\n");
@@ -76,14 +31,37 @@ int main() {
         0
     )) {
         printf("Connection failed: %s\n", mysql_error(conn));
-        return 1;
+        exit(1);
     }
     
     printf("Connected succesfully!\n");
+    
+    printf("\n======================\n\n");
 
-    read_table_test(conn);
+    worker = select_worker_by_id(conn, 1);
+    include_worker_roles(conn, worker);
+
+    if (worker == NULL) {
+        printf("NULL\n");
+    } else {
+        printf("%d %s %s | %ld", 
+            get_worker_id(worker), 
+            get_worker_first_name(worker), 
+            get_worker_second_name(worker), 
+            get_worker_roles_count(worker));
+    }
+
+    for (i = 0; i < get_worker_roles_count(worker); i++)
+        printf(" %s ", get_worker_role(worker, i)->name);
+    printf("\n");
+
+    free_worker(worker);
+
+    
+    printf("\n======================\n");
     
     mysql_close(conn);
+
     
     exit(EXIT_SUCCESS);
 }
