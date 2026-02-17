@@ -10,10 +10,30 @@ int find_worker_by_id(void *value) {
     return worker->id == 58;
 }
 
+void print_worker(WorkerModel *worker) {
+    size_t i;
+
+    printf("\n======================\n\n");
+
+    if (worker == NULL) {
+        printf("NULL\n");
+    } else {
+        printf("%d %s %s | %ld", 
+            get_worker_id(worker), 
+            get_worker_first_name(worker), 
+            get_worker_second_name(worker), 
+            get_worker_roles_count(worker));
+
+        for (i = 0; i < get_worker_roles_count(worker); i++)
+            printf(" %s ", get_worker_role(worker, i)->name);
+        printf("\n");
+    }
+    
+}
+
 int main() {
     MYSQL *conn;
     WorkerModel *worker = NULL;
-    size_t i;
     
     if (!(conn = mysql_init(0))) {
         fprintf(stderr, "unable to initialize connection struct\n");
@@ -35,25 +55,17 @@ int main() {
     }
     
     printf("Connected succesfully!\n");
-    
-    printf("\n======================\n\n");
 
-    worker = select_worker_by_id(conn, 1);
+    worker = select_worker_by_id(conn, 3);
     include_worker_roles(conn, worker);
 
-    if (worker == NULL) {
-        printf("NULL\n");
-    } else {
-        printf("%d %s %s | %ld", 
-            get_worker_id(worker), 
-            get_worker_first_name(worker), 
-            get_worker_second_name(worker), 
-            get_worker_roles_count(worker));
-    }
+    print_worker(worker);
 
-    for (i = 0; i < get_worker_roles_count(worker); i++)
-        printf(" %s ", get_worker_role(worker, i)->name);
-    printf("\n");
+    delete_worker(conn, worker);
+    
+    add_worker(conn, worker);
+    
+    print_worker(worker);
 
     free_worker(worker);
 

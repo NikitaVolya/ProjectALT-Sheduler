@@ -13,13 +13,14 @@ WorkerModel* create_worker(const char *first_name, const char *second_name) {
     }
 
     res->id = 0;
+    strcpy_s(res->first_name, first_name, WORKER_FIRST_NAME_MAX_SIZE);
+    strcpy_s(res->second_name, second_name, WORKER_SECOND_NAME_MAX_SIZE);
+
+    res->is_changed = 0;
 
     res->roles = NULL;
     res->roles_count = 0;
     res->roles_included = 0;
-
-    strcpy_s(res->first_name, first_name, WORKER_FIRST_NAME_MAX_SIZE);
-    strcpy_s(res->second_name, second_name, WORKER_SECOND_NAME_MAX_SIZE);
 
     return res;
 }
@@ -35,6 +36,8 @@ void set_worker_first_name(WorkerModel *worker, const char *value) {
     }
 
     strcpy_s(worker->first_name, value, WORKER_FIRST_NAME_MAX_SIZE);
+
+    worker->is_changed = 1;
 }
 
 void set_worker_last_name(WorkerModel *worker, const char *value) {
@@ -44,6 +47,8 @@ void set_worker_last_name(WorkerModel *worker, const char *value) {
     }
 
     strcpy_s(worker->second_name, value, WORKER_SECOND_NAME_MAX_SIZE);
+
+    worker->is_changed = 1;
 }
 
 /* ================================ */
@@ -106,6 +111,9 @@ size_t get_worker_roles_count(WorkerModel *worker) {
 /*                                  */
 /* ================================ */
 void free_worker(WorkerModel* worker) {
+    if (worker == NULL)
+        return;
+
     if (worker->roles != NULL)
         free(worker->roles);
     free(worker);
@@ -128,8 +136,8 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
     }
 
     memset(bind, 0, sizeof(bind));
-    mysql_set_string_prop_bind(bind, worker->first_name);  // first_name
-    mysql_set_string_prop_bind(bind, worker->second_name); // last_name
+    mysql_set_string_prop_bind(bind, worker->first_name);      // first_name
+    mysql_set_string_prop_bind(bind + 1, worker->second_name); // last_name
 
     query = "INSERT INTO worker(first_name, second_name) VALUES (?, ?)";
 
@@ -138,6 +146,7 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
         return NULL;
     }
     worker->id = mysql_stmt_insert_id(stmt);
+    worker->is_changed = 0;
     
     mysql_stmt_close(stmt);
     return worker;
@@ -305,5 +314,101 @@ WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
     mysql_stmt_free_result(stmt);
     mysql_stmt_close(stmt);
 
+    return worker;
+}
+
+WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker) {
+    WorkerModel *res;
+
+    if (worker == NULL || *worker == NULL) {
+        fprintf(stderr, "Error : worker is NULL\n");
+        return NULL;
+    }
+
+    if ((*worker)->id == 0 || 
+        (res = select_worker_by_id(conn, (*worker)->id )) == NULL) {
+        fprintf(stderr, "Error : worker is not exists in data base\n");
+        return NULL;
+    }
+
+    if ((*worker)->roles_included) {
+        include_worker_roles(conn, res);
+    }
+
+    free_worker(*worker);
+    *worker = res;
+    return res;
+}
+
+WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker) {
+    MYSQL_STMT *stmt;
+    MYSQL_BIND props_bind[3];
+    char *query;
+
+    if (worker == NULL) {
+        fprintf(stderr, "Error : worker is NULL\n");
+        return NULL;
+    }
+
+    memset(props_bind, 0, sizeof(props_bind));
+    mysql_set_string_prop_bind(props_bind, worker->first_name);
+    mysql_set_string_prop_bind(props_bind + 1, worker->second_name);
+    mysql_set_uint_prop_bind(props_bind + 2, &worker->id);
+    
+    query = "UPDATE worker "
+            "SET first_name=?, second_name=? "
+            "WHERE id=? "
+            ;
+
+    if (mysql_request(conn, &stmt, query, NULL, props_bind)) {
+        return worker;
+    }
+
+    if (mysql_stmt_affected_rows(stmt) == 0 && worker->is_changed) {
+        fprintf(stderr, "Worker is not updated\n");
+        worker = NULL;
+    } else {
+        worker->is_changed = 0;
+    }
+
+    mysql_stmt_close(stmt);
+    return worker;
+}
+
+WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
+    MYSQL_STMT *stmt;
+    MYSQL_BIND props_bind[1];
+    char *query;
+
+    if (worker == NULL) {
+        fprintf(stderr, "Error : worker is NULL\n");
+        return NULL;
+    }
+
+    memset(props_bind, 0, sizeof(props_bind));
+    mysql_set_uint_prop_bind(props_bind, &worker->id);
+
+    query = "DELETE FROM worker WHERE id = ?";
+    if (mysql_request(conn, &stmt, query, NULL, props_bind)) {
+        return worker;
+    }
+
+    if (mysql_stmt_affected_rows(stmt) == 0) {
+        fprintf(stderr, "Worker is not deleted\n");
+    }
+
+    worker->id = 0;
+    worker->is_changed = 0;
+    
+    if (worker->roles_included) {
+        worker->roles_included = 0;
+        if (worker->roles != NULL) {
+            free(worker->roles);
+            worker->roles = NULL;
+        }
+        worker->roles_count = 0;
+    }
+
+    mysql_stmt_close(stmt);
     return worker;
 }

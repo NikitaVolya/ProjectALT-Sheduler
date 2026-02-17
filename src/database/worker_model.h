@@ -20,6 +20,7 @@ typedef struct {
     char first_name[WORKER_FIRST_NAME_MAX_SIZE], 
          second_name[WORKER_SECOND_NAME_MAX_SIZE];
     
+    short is_changed;
 
     RoleModel *roles;
     size_t roles_count;
@@ -72,12 +73,16 @@ void free_worker(WorkerModel* worker);
 /* ================================ */
 WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker);
 
-int delete_worker(MYSQL *conn, WorkerModel* worker);
-
 WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id);
 
 Queue* select_workers(MYSQL *conn);
 
 WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker);
+
+WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker);
+
+WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker);
+
+WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker);
 
 #endif /* _WORKER_MODEL_H_ */
