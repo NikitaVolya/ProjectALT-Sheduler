@@ -1,5 +1,6 @@
 
 
+
 CREATE TABLE worker(
        id INT UNSIGNED AUTO_INCREMENT,
        first_name VARCHAR(100) NOT NULL,
@@ -32,7 +33,8 @@ CREATE TABLE worker_role(
        worker_id INT UNSIGNED NOT NULL,
        role_id INT UNSIGNED NOT NULL,
        PRIMARY KEY (worker_id, role_id),
-       CONSTRAINT wr_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id),
+       CONSTRAINT wr_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id)
+       ON DELETE CASCADE,
        CONSTRAINT wr_fk_role_id FOREIGN KEY (role_id) REFERENCES role(id)
        ON DELETE CASCADE
 );
@@ -91,14 +93,14 @@ CREATE TABLE worker_work_default_day(
        FOREIGN KEY (work_default_day_id) REFERENCES work_default_day(work_day_id)
        ON DELETE CASCADE,
        CONSTRAINT wwdd_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id)
+       ON DELETE CASCADE
 );
 
 CREATE TABLE line_work_default_day(
        work_default_day_id INT UNSIGNED NOT NULL,
        line_id INT UNSIGNED NOT NULL,
        PRIMARY KEY (work_default_day_id, line_id),
-       CONSTRAINT lwdd_fk_work_default_day_id
-       FOREIGN KEY (work_default_day_id) REFERENCES work_default_day(work_day_id)
+       CONSTRAINT lwdd_fk_work_default_day_id FOREIGN KEY (work_default_day_id) REFERENCES work_default_day(work_day_id)
        ON DELETE CASCADE,
        CONSTRAINT lwdd_fk_line_id FOREIGN KEY (line_id) REFERENCES line(id)
 );
@@ -111,8 +113,10 @@ CREATE TABLE worker_work_week_day(
        CONSTRAINT wwwd_fk_work_week_day_id
        FOREIGN KEY (work_week_day_id) REFERENCES work_week_day(work_day_id)
        ON DELETE CASCADE,
-       CONSTRAINT wwwd_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id),
+       CONSTRAINT wwwd_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id)
+       ON DELETE CASCADE,
        CONSTRAINT wwwd_fk_line_id FOREIGN KEY (line_id) REFERENCES line(id)
+       ON DELETE CASCADE
 );
 
 CREATE TABLE line_work_week_day(
@@ -124,3 +128,40 @@ CREATE TABLE line_work_week_day(
        ON DELETE CASCADE,
        CONSTRAINT lwwd_fk_line_id FOREIGN KEY (line_id) REFERENCES line(id)
 );
+
+DELIMITER $
+
+/* Triger for delete all work days for deleted worker */
+CREATE TRIGGER trg_bf_delete_worker
+BEFORE DELETE ON worker
+FOR EACH ROW
+BEGIN
+    DELETE FROM work_day
+    WHERE id IN (SELECT work_default_day_id
+                 FROM worker_work_default_day
+                 WHERE worker_id = OLD.id)
+    OR id IN (SELECT work_week_day_id
+              FROM worker_work_week_day
+              WHERE worker_id = OLD.id);
+END;
+$
+
+/* Triger for delete all work days for deleted line */
+CREATE TRIGGER trg_bf_delete_line
+BEFORE DELETE ON `line`
+FOR EACH ROW
+BEGIN
+    DELETE FROM work_day
+    WHERE id IN (SELECT work_default_day_id
+                 FROM line_work_default_day
+                 WHERE line_id = OLD.id)
+    OR id IN (SELECT work_week_day_id
+                 FROM line_work_week_day
+                 WHERE line_id = OLD.id)
+    OR id IN (SELECT work_week_day_id
+              FROM worker_work_week_day
+              WHERE line_id = OLD.id);
+END;
+$
+
+DELIMITER ;
