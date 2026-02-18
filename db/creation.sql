@@ -11,7 +11,8 @@ CREATE TABLE worker(
 CREATE TABLE role(
        id INT UNSIGNED AUTO_INCREMENT,
        name VARCHAR(255) NOT NULL,
-       PRIMARY KEY (id)
+       PRIMARY KEY (id),
+       CONSTRAINT unq_role_name UNIQUE (name)
 );
 
 CREATE TABLE line(
