@@ -25,7 +25,7 @@ void print_worker(WorkerModel *worker) {
             get_worker_roles_count(worker));
 
         for (i = 0; i < get_worker_roles_count(worker); i++)
-            printf(" %s ", get_worker_role(worker, i)->name);
+            printf(" %s ", get_role_name(get_worker_role(worker, i)));
         printf("\n");
     }
     
@@ -47,10 +47,6 @@ int main() {
     worker = select_worker_by_id(conn, 3);
     include_worker_roles(conn, worker);
 
-    print_worker(worker);
-
-    add_worker(conn, worker);
-    
     print_worker(worker);
 
     free_worker(worker);

@@ -48,15 +48,15 @@ void set_worker_last_name(WorkerModel *worker, const char *value);
 /*        WorkerModel Getters       */
 /*                                  */
 /* ================================ */
-unsigned int get_worker_id(WorkerModel *worker);
+unsigned int get_worker_id(const WorkerModel *worker);
 
-const char* get_worker_first_name(WorkerModel *worker);
+const char* get_worker_first_name(const WorkerModel *worker);
 
-const char* get_worker_second_name(WorkerModel *worker);
+const char* get_worker_second_name(const WorkerModel *worker);
 
-const RoleModel* get_worker_role(WorkerModel *worker, size_t index);
+const RoleModel* get_worker_role(const WorkerModel *worker, size_t index);
 
-size_t get_worker_roles_count(WorkerModel *worker);
+size_t get_worker_roles_count(const WorkerModel *worker);
 
 /* ================================ */
 /*                                  */

@@ -10,6 +10,7 @@ WorkerModel* create_worker(const char *first_name, const char *second_name) {
 
     if ((res = (WorkerModel*) malloc(sizeof(WorkerModel))) == NULL) {
         fprintf(stderr, "Error while memory alocation for WorkerModel");
+        return NULL;
     }
 
     res->id = 0;
@@ -56,7 +57,7 @@ void set_worker_last_name(WorkerModel *worker, const char *value) {
 /*        WorkerModel Getters       */
 /*                                  */
 /* ================================ */
-unsigned int get_worker_id(WorkerModel *worker) {
+unsigned int get_worker_id(const WorkerModel *worker) {
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         exit(EXIT_FAILURE);
@@ -65,7 +66,7 @@ unsigned int get_worker_id(WorkerModel *worker) {
     return worker->id;
 }
 
-const char* get_worker_first_name(WorkerModel *worker) {
+const char* get_worker_first_name(const WorkerModel *worker) {
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         exit(EXIT_FAILURE);
@@ -74,7 +75,7 @@ const char* get_worker_first_name(WorkerModel *worker) {
     return worker->first_name;
 }
 
-const char* get_worker_second_name(WorkerModel *worker) {
+const char* get_worker_second_name(const WorkerModel *worker) {
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         exit(EXIT_FAILURE);
@@ -83,7 +84,7 @@ const char* get_worker_second_name(WorkerModel *worker) {
     return worker->second_name;
 }
 
-const RoleModel* get_worker_role(WorkerModel *worker, size_t index) {
+const RoleModel* get_worker_role(const WorkerModel *worker, size_t index) {
     if (worker->roles == NULL || !worker->roles_included) {
         fprintf(stderr, "Role index out of bounds : worker roles are not included\n");
         exit(EXIT_FAILURE);
@@ -96,7 +97,7 @@ const RoleModel* get_worker_role(WorkerModel *worker, size_t index) {
     return &worker->roles[index];
 }
 
-size_t get_worker_roles_count(WorkerModel *worker) {
+size_t get_worker_roles_count(const WorkerModel *worker) {
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         exit(EXIT_FAILURE);
