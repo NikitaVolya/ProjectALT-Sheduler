@@ -130,8 +130,8 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
 
     char *query;
     
-    if (worker->id != 0) {
-        fprintf(stderr, "Worker is invalid or already exists with this id\n");
+    if (worker == NULL || worker->id != 0) {
+        fprintf(stderr, "Error : Worker is NULL or already exists with this id\n");
         return NULL;
     }
 

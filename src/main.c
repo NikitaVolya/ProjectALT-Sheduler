@@ -40,19 +40,7 @@ int main() {
         exit(1);
     }
 
-    if (!mysql_real_connect(
-        conn,
-        "127.0.0.1",
-        "app_user",
-        "strong_password",
-        "test",
-        3306,
-        NULL,
-        0
-    )) {
-        printf("Connection failed: %s\n", mysql_error(conn));
-        exit(1);
-    }
+    conn = mysql_create_connection("127.0.0.1", 3306, "test", "app_user", "strong_password");
     
     printf("Connected succesfully!\n");
 
@@ -61,19 +49,15 @@ int main() {
 
     print_worker(worker);
 
-    delete_worker(conn, worker);
-    
     add_worker(conn, worker);
     
     print_worker(worker);
 
     free_worker(worker);
 
-    
     printf("\n======================\n");
     
     mysql_close(conn);
-
     
     exit(EXIT_SUCCESS);
 }

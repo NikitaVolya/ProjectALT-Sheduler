@@ -79,3 +79,20 @@ int mysql_request(MYSQL *conn, MYSQL_STMT **stmt,
 
     return 0;
 }
+
+MYSQL* mysql_create_connection(const char *address, int port, 
+                               const char *database, const char *user, const char *passowrd) {
+    MYSQL *conn;
+
+    if (!(conn = mysql_init(0))) {
+        fprintf(stderr, "unable to initialize connection struct\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!mysql_real_connect(conn, address, user, passowrd, database, port, NULL, 0)) {
+        printf("Connection failed: %s\n", mysql_error(conn));
+        exit(EXIT_FAILURE);
+    }
+
+    return conn;
+}

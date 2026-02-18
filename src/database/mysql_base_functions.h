@@ -28,4 +28,7 @@ int mysql_request(MYSQL *conn, MYSQL_STMT **stmt,
                   MYSQL_BIND *res_bind, 
                   MYSQL_BIND *prop_bind);
 
+MYSQL* mysql_create_connection(const char *address, int port, 
+                               const char *database, const char *user, const char *passowrd);
+
 #endif /* _BASE_FUNCTIONS_H_ */
