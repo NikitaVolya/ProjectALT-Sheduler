@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 /* =========================== */
 /*         RESULT BINDS        */
@@ -23,6 +24,8 @@ void mysql_set_uint_prop_bind(MYSQL_BIND *bind, unsigned int *value);
 /* =========================== */
 /*            REAQUESTS        */
 /* =========================== */
+int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const char *query, ...);
+
 int mysql_request(MYSQL *conn, MYSQL_STMT **stmt, 
                   const char *query, 
                   MYSQL_BIND *res_bind, 

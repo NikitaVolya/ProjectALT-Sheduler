@@ -42,4 +42,10 @@ void set_role_name(RoleModel *role, const char *value);
 /* ================================ */
 const char* get_role_name(const RoleModel *role);
 
+/* ================================ */
+/*                                  */
+/*        DATABASE FUNCTIONS        */
+/*                                  */
+/* ================================ */
+
 #endif /* _ROLE_MODEL_H_ */

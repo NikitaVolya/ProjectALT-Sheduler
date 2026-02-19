@@ -41,7 +41,7 @@ void set_worker_first_name(WorkerModel *worker, const char *value) {
     worker->is_changed = 1;
 }
 
-void set_worker_last_name(WorkerModel *worker, const char *value) {
+void set_worker_second_name(WorkerModel *worker, const char *value) {
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         exit(EXIT_FAILURE);
@@ -126,23 +126,16 @@ void free_worker(WorkerModel* worker) {
 /*                                  */
 /* ================================ */
 WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
-    MYSQL_BIND bind[2];
     MYSQL_STMT *stmt;
-
-    char *query;
     
     if (worker == NULL || worker->id != 0) {
         fprintf(stderr, "Error : Worker is NULL or already exists with this id\n");
         return NULL;
     }
 
-    memset(bind, 0, sizeof(bind));
-    mysql_set_string_prop_bind(bind, worker->first_name);      // first_name
-    mysql_set_string_prop_bind(bind + 1, worker->second_name); // last_name
-
-    query = "INSERT INTO worker(first_name, second_name) VALUES (?, ?)";
-
-    if (mysql_request(conn, &stmt, query, NULL, bind)) {
+    if (mysql_request_f(conn, &stmt, NULL, 
+        "INSERT INTO worker(first_name, second_name) VALUES (%s, %s)", 
+        worker->first_name, worker->second_name)) {
         fprintf(stderr, "Error while worker inserting\n");
         return NULL;
     }
@@ -153,33 +146,26 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
     return worker;
 }
 
+
 WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
     WorkerModel *res;
     MYSQL_STMT *stmt;
     
     /* BINDS FOR REQUEST */
     MYSQL_BIND res_bind[2];
-    MYSQL_BIND props_bind[1];
-
-    char *query;
 
     char first_name[WORKER_FIRST_NAME_MAX_SIZE], 
          second_name[WORKER_SECOND_NAME_MAX_SIZE];
     unsigned long first_name_len, second_name_len;
 
     memset(res_bind, 0, sizeof(res_bind));
-    memset(props_bind, 0, sizeof(props_bind));
 
     /*      RESULT BIND        */
     mysql_set_string_result_bind(res_bind + 0, first_name, sizeof(first_name), &first_name_len);    // first_name
     mysql_set_string_result_bind(res_bind + 1, second_name, sizeof(second_name), &second_name_len); // second_name
 
-    /*     CONDITION BIND      */
-    mysql_set_uint_prop_bind(props_bind, &id); // id
-
-    query = "SELECT first_name, second_name FROM worker WHERE id = ?";
-
-    if (mysql_request(conn, &stmt, query, res_bind, props_bind)) {
+    if (mysql_request_f(conn, &stmt, res_bind, 
+        "SELECT first_name, second_name FROM worker WHERE id = %ui", &id)) {
         fprintf(stderr, "Error while worker inserting\n");
         return NULL;
     }
@@ -204,6 +190,7 @@ WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
     return res;
 }
 
+
 Queue* select_workers(MYSQL *conn) {
     MYSQL_BIND bind[3];
     MYSQL_STMT *stmt;
@@ -221,9 +208,7 @@ Queue* select_workers(MYSQL *conn) {
     mysql_set_string_result_bind(bind + 1, first_name, sizeof(first_name), &first_name_len);    // first_name
     mysql_set_string_result_bind(bind + 2, second_name, sizeof(second_name), &second_name_len); // second_name
 
-    if (mysql_request(conn, &stmt, 
-                      "SELECT id, first_name, second_name FROM worker", 
-                      bind, NULL)) {
+    if (mysql_request_f(conn, &stmt, bind, "SELECT id, first_name, second_name FROM worker")) {
         return NULL;
     }
 
@@ -250,11 +235,10 @@ Queue* select_workers(MYSQL *conn) {
     return res;
 }
 
+
 WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
     MYSQL_STMT *stmt;
     MYSQL_BIND res_bind[2];
-    MYSQL_BIND props_bind[1];
-    char *query;
 
     int i = 0;
     unsigned int role_id;
@@ -275,20 +259,15 @@ WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
     }
     
     memset(res_bind, 0, sizeof(res_bind));
-    memset(props_bind, 0, sizeof(props_bind));
 
     mysql_set_uint_result_bind(res_bind, &role_id);                                               // role_id
     mysql_set_string_result_bind(res_bind + 1, role_name, sizeof(role_name), &role_name_len);     // role_name
 
-    mysql_set_uint_prop_bind(props_bind, &worker->id);                                            // id 
-
-
-    query = "SELECT `role`.id, `role`.name "
+    if (mysql_request_f(conn, &stmt, res_bind, 
+            "SELECT `role`.id, `role`.name "
             "FROM `role`, worker_role AS wr "
             "WHERE wr.role_id = `role`.id "
-            "AND wr.worker_id = ?";
-
-    if (mysql_request(conn, &stmt, query, res_bind, props_bind)) {
+            "AND wr.worker_id = %ui", &worker->id)) {
         return worker;
     }
 
@@ -318,6 +297,7 @@ WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
     return worker;
 }
 
+
 WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker) {
     WorkerModel *res;
 
@@ -341,27 +321,19 @@ WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker) {
     return res;
 }
 
+
 WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker) {
     MYSQL_STMT *stmt;
-    MYSQL_BIND props_bind[3];
-    char *query;
 
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         return NULL;
     }
 
-    memset(props_bind, 0, sizeof(props_bind));
-    mysql_set_string_prop_bind(props_bind, worker->first_name);
-    mysql_set_string_prop_bind(props_bind + 1, worker->second_name);
-    mysql_set_uint_prop_bind(props_bind + 2, &worker->id);
-    
-    query = "UPDATE worker "
-            "SET first_name=?, second_name=? "
-            "WHERE id=? "
-            ;
-
-    if (mysql_request(conn, &stmt, query, NULL, props_bind)) {
+    if (mysql_request_f(conn, &stmt, NULL, 
+            "UPDATE worker "
+            "SET first_name=%s, second_name=%s "
+            "WHERE id=%ui ", worker->first_name, worker->second_name, &worker->id)) {
         return worker;
     }
 
@@ -376,21 +348,17 @@ WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker) {
     return worker;
 }
 
+
 WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
     MYSQL_STMT *stmt;
-    MYSQL_BIND props_bind[1];
-    char *query;
 
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         return NULL;
     }
-
-    memset(props_bind, 0, sizeof(props_bind));
-    mysql_set_uint_prop_bind(props_bind, &worker->id);
-
-    query = "DELETE FROM worker WHERE id = ?";
-    if (mysql_request(conn, &stmt, query, NULL, props_bind)) {
+    
+    if (mysql_request_f(conn, &stmt, NULL, 
+        "DELETE FROM worker WHERE id = %ui", &worker->id)) {
         return worker;
     }
 

@@ -41,7 +41,7 @@ WorkerModel* create_worker(const char *first_name, const char *second_name);
 /* ================================ */
 void set_worker_first_name(WorkerModel *worker, const char *value);
 
-void set_worker_last_name(WorkerModel *worker, const char *value);
+void set_worker_second_name(WorkerModel *worker, const char *value);
 
 /* ================================ */
 /*                                  */

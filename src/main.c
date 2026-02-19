@@ -44,8 +44,8 @@ int main() {
     
     printf("Connected succesfully!\n");
 
-    worker = select_worker_by_id(conn, 3);
-    include_worker_roles(conn, worker);
+    worker = create_worker("Nikita", "Volia");
+    add_worker(conn, worker);
 
     print_worker(worker);
 
