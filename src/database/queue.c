@@ -25,7 +25,9 @@ void free_queue(Queue *queue) {
     curr = queue->start;
 
     while (curr != NULL) {
+
         free(curr->value);
+        
         tmp = curr->next;
         free(curr);
 
@@ -84,6 +86,24 @@ void* pop_queue_element(Queue* queue) {
 
     free(tmp);
     return res;
+}
+
+
+void* get_queue_element(Queue *queue, size_t index) {
+    QueueElement *c;
+
+    if (index >= queue->size) {
+        fprintf(stderr, "Queue index out of range\n");
+        exit(EXIT_FAILURE);
+    }
+
+    c = queue->start;
+    while (index != 0) {
+        c = c->next;
+        index--;
+    }
+
+    return c->value;
 }
 
 void* queue_find_first_element(Queue* queue, int (*predicate)(void*)) {

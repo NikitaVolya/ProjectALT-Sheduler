@@ -60,6 +60,13 @@ size_t get_worker_roles_count(const WorkerModel *worker);
 
 /* ================================ */
 /*                                  */
+/*       WorkerModel functions      */
+/*                                  */
+/* ================================ */
+void print_worker(const WorkerModel *worker);
+
+/* ================================ */
+/*                                  */
 /*      WorkerModel Destructor      */
 /*                                  */
 /* ================================ */
@@ -75,8 +82,6 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker);
 
 WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id);
 
-Queue* select_workers(MYSQL *conn);
-
 WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker);
 
 WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker);
@@ -84,5 +89,16 @@ WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker);
 WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker);
 
 WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker);
+
+/* ====================================== */
+/*                                        */
+/*        QUEUE DATABASE FUNCTIONS        */
+/*                                        */
+/* ====================================== */
+Queue* select_workers(MYSQL *conn);
+
+Queue* refresh_workers(MYSQL *conn, Queue *workers);
+
+Queue* update_workers(MYSQL *conn, Queue *workers);
 
 #endif /* _WORKER_MODEL_H_ */

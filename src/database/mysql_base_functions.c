@@ -46,23 +46,26 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
             counter++;
     }
 
+    /* memory alocation of result query */
+    if ((res_query = (char *) malloc(sizeof(char) * (strlen(query) + 1))) == NULL) {
+        fprintf(stderr, "Error while memory allocation\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* if no params found stop function */
     if (counter == 0) {
         *res_binds = NULL;
-        return query;
+        strcpy(res_query, query);
+        return res_query;
     }
 
-    /* memory alocation */
+    /* memory alocation of binds */
     if ((*res_binds = (MYSQL_BIND*) malloc(sizeof(MYSQL_BIND) * counter)) == NULL) {
         fprintf(stderr, "Error while memory allocation\n");
         exit(EXIT_FAILURE);
     }
     memset(*res_binds, 0, sizeof(MYSQL_BIND) * counter);
-
-    if ((res_query = (char *) malloc(sizeof(char) * (strlen(query) + 1))) == NULL) {
-        fprintf(stderr, "Error while memory allocation\n");
-        exit(EXIT_FAILURE);
-    }
+    
     
     i = 0;
     res_query_c = res_query;
@@ -131,7 +134,6 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
         free(prop_bind);
         return 1;
     } 
-     
 
     if (mysql_stmt_execute(*stmt)) {
         fprintf(stderr, "mysql_stmt_execute() failed: %s\n", mysql_stmt_error(*stmt));
@@ -156,50 +158,6 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
     }
 
     free(f_query);
-
-    return 0;
-}
-
-int mysql_request(MYSQL *conn, MYSQL_STMT **stmt, 
-                  const char *query, 
-                  MYSQL_BIND *res_bind, 
-                  MYSQL_BIND *prop_bind) {
-
-    *stmt = mysql_stmt_init(conn);
-    if (!*stmt) {
-        fprintf(stderr, "mysql_stmt_init() failed\n");
-        return 1;
-    }
-
-    if (mysql_stmt_prepare(*stmt, query, strlen(query))) {
-        fprintf(stderr, "mysql_stmt_prepare() failed: %s\n", mysql_stmt_error(*stmt));
-        mysql_stmt_close(*stmt);
-        return 1;
-    }
-
-    if (prop_bind != NULL && mysql_stmt_bind_param(*stmt, prop_bind)) {
-        fprintf(stderr, "Bind failed: %s\n", mysql_stmt_error(*stmt));
-        mysql_stmt_close(*stmt);
-        return 1;
-    }
-
-    if (mysql_stmt_execute(*stmt)) {
-        fprintf(stderr, "mysql_stmt_execute() failed: %s\n", mysql_stmt_error(*stmt));
-        mysql_stmt_close(*stmt);
-        return 1;
-    }
-
-    if (res_bind != NULL && mysql_stmt_bind_result(*stmt, res_bind)) {
-        fprintf(stderr, "mysql_stmt_bind_result() failed: %s\n", mysql_stmt_error(*stmt));
-        mysql_stmt_close(*stmt);
-        return 1;
-    }
-
-    if (mysql_stmt_store_result(*stmt)) {
-        fprintf(stderr, "mysql_stmt_store_result() failed: %s\n", mysql_stmt_error(*stmt));
-        mysql_stmt_close(*stmt);
-        return 1;
-    }
 
     return 0;
 }

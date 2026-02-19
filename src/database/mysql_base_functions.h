@@ -26,10 +26,6 @@ void mysql_set_uint_prop_bind(MYSQL_BIND *bind, unsigned int *value);
 /* =========================== */
 int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const char *query, ...);
 
-int mysql_request(MYSQL *conn, MYSQL_STMT **stmt, 
-                  const char *query, 
-                  MYSQL_BIND *res_bind, 
-                  MYSQL_BIND *prop_bind);
 
 MYSQL* mysql_create_connection(const char *address, int port, 
                                const char *database, const char *user, const char *passowrd);

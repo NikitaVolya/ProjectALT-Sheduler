@@ -108,6 +108,29 @@ size_t get_worker_roles_count(const WorkerModel *worker) {
 
 /* ================================ */
 /*                                  */
+/*       WorkerModel functions      */
+/*                                  */
+/* ================================ */
+void print_worker(const WorkerModel *worker) {
+    size_t i;
+    if (worker == NULL) {
+        printf("NULL\n");
+    } else {
+        printf("%d %s %s | %ld", 
+            get_worker_id(worker), 
+            get_worker_first_name(worker), 
+            get_worker_second_name(worker), 
+            get_worker_roles_count(worker));
+
+        for (i = 0; i < get_worker_roles_count(worker); i++)
+            printf(" %s ", get_role_name(get_worker_role(worker, i)));
+        printf("\n");
+    }
+    
+}
+
+/* ================================ */
+/*                                  */
 /*      WorkerModel Destructor      */
 /*                                  */
 /* ================================ */
@@ -184,51 +207,6 @@ WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
         res = NULL;
     }
     
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
-
-    return res;
-}
-
-
-Queue* select_workers(MYSQL *conn) {
-    MYSQL_BIND bind[3];
-    MYSQL_STMT *stmt;
-
-    unsigned int id;
-    char first_name[WORKER_FIRST_NAME_MAX_SIZE], second_name[WORKER_SECOND_NAME_MAX_SIZE];
-    unsigned long first_name_len, second_name_len;
-
-    WorkerModel *tmp;
-    Queue *res;
-
-    memset(bind, 0, sizeof(bind));
-
-    mysql_set_uint_result_bind(bind, &id);                                                      // id
-    mysql_set_string_result_bind(bind + 1, first_name, sizeof(first_name), &first_name_len);    // first_name
-    mysql_set_string_result_bind(bind + 2, second_name, sizeof(second_name), &second_name_len); // second_name
-
-    if (mysql_request_f(conn, &stmt, bind, "SELECT id, first_name, second_name FROM worker")) {
-        return NULL;
-    }
-
-    if ((res = create_queue()) == NULL) {
-        mysql_stmt_free_result(stmt);
-        mysql_stmt_close(stmt);
-        return NULL;
-    }
-
-    while (mysql_stmt_fetch(stmt) == 0) {
-
-        first_name[first_name_len] = '\0';
-        second_name[second_name_len] = '\0';
-
-        if ((tmp = create_worker(first_name, second_name)) != NULL) {
-            tmp->id = id;
-            push_queue_element(res, tmp);
-        }
-    }
-
     mysql_stmt_free_result(stmt);
     mysql_stmt_close(stmt);
 
@@ -380,4 +358,80 @@ WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
 
     mysql_stmt_close(stmt);
     return worker;
+}
+
+Queue* select_workers(MYSQL *conn) {
+    MYSQL_BIND bind[3];
+    MYSQL_STMT *stmt;
+
+    unsigned int id;
+    char first_name[WORKER_FIRST_NAME_MAX_SIZE], second_name[WORKER_SECOND_NAME_MAX_SIZE];
+    unsigned long first_name_len, second_name_len;
+
+    WorkerModel *tmp;
+    Queue *res;
+
+    memset(bind, 0, sizeof(bind));
+
+    mysql_set_uint_result_bind(bind, &id);                                                      // id
+    mysql_set_string_result_bind(bind + 1, first_name, sizeof(first_name), &first_name_len);    // first_name
+    mysql_set_string_result_bind(bind + 2, second_name, sizeof(second_name), &second_name_len); // second_name
+
+    if (mysql_request_f(conn, &stmt, bind, "SELECT id, first_name, second_name FROM worker")) {
+        return NULL;
+    }
+
+    if ((res = create_queue()) == NULL) {
+        mysql_stmt_free_result(stmt);
+        mysql_stmt_close(stmt);
+        return NULL;
+    }
+
+    while (mysql_stmt_fetch(stmt) == 0) {
+
+        first_name[first_name_len] = '\0';
+        second_name[second_name_len] = '\0';
+
+        if ((tmp = create_worker(first_name, second_name)) != NULL) {
+            tmp->id = id;
+            push_queue_element(res, tmp);
+        }
+    }
+
+    mysql_stmt_free_result(stmt);
+    mysql_stmt_close(stmt);
+
+    return res;
+}
+
+Queue* refresh_workers(MYSQL *conn, Queue *workers) {
+    WorkerModel *worker;
+    size_t i = get_queue_size(workers);
+
+    while (i > 0) {
+        i--;
+
+        worker = pop_queue_element(workers);
+
+        worker = refresh_worker(conn, &worker);
+
+        push_queue_element(workers, worker);
+    }
+    return workers;
+}
+
+Queue* update_workers(MYSQL *conn, Queue *workers) {
+    WorkerModel *worker;
+    size_t i = get_queue_size(workers);
+
+    while (i > 0) {
+        i--;
+
+        worker = pop_queue_element(workers);
+
+        worker = update_worker(conn, worker);
+
+        push_queue_element(workers, worker);
+    }
+    return workers;
 }

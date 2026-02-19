@@ -10,30 +10,11 @@ int find_worker_by_id(void *value) {
     return worker->id == 58;
 }
 
-void print_worker(WorkerModel *worker) {
-    size_t i;
-
-    printf("\n======================\n\n");
-
-    if (worker == NULL) {
-        printf("NULL\n");
-    } else {
-        printf("%d %s %s | %ld", 
-            get_worker_id(worker), 
-            get_worker_first_name(worker), 
-            get_worker_second_name(worker), 
-            get_worker_roles_count(worker));
-
-        for (i = 0; i < get_worker_roles_count(worker); i++)
-            printf(" %s ", get_role_name(get_worker_role(worker, i)));
-        printf("\n");
-    }
-    
-}
-
 int main() {
     MYSQL *conn;
     WorkerModel *worker = NULL;
+    Queue *queue;
+    QueueIterator *it;
     
     if (!(conn = mysql_init(0))) {
         fprintf(stderr, "unable to initialize connection struct\n");
@@ -44,12 +25,24 @@ int main() {
     
     printf("Connected succesfully!\n");
 
-    worker = create_worker("Nikita", "Volia");
-    add_worker(conn, worker);
+    queue = select_workers(conn);
 
-    print_worker(worker);
+    for (it = get_queue_iterator(queue); !queue_iterator_is_end(it); queue_iterator_forward(it)) {
+        print_worker(get_queue_iterator_value(it));
+    }
+    printf("======================\n");
 
-    free_worker(worker);
+    worker = get_queue_element(queue, 1);
+    set_worker_first_name(worker, "Hello");
+
+    for (it = get_queue_iterator(queue); !queue_iterator_is_end(it); queue_iterator_forward(it)) {
+        print_worker(get_queue_iterator_value(it));
+    }
+    printf("======================\n");
+
+    update_workers(conn, queue);
+    
+    free_queue(queue);
 
     printf("\n======================\n");
     

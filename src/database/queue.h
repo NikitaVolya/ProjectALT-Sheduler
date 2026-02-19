@@ -28,9 +28,11 @@ Queue* create_queue();
 
 void free_queue(Queue *queue);
 
-Queue* push_queue_element(Queue* queue, void *value);
+Queue* push_queue_element(Queue *queue, void *value);
 
-void* pop_queue_element(Queue* queue);
+void* pop_queue_element(Queue *queue);
+
+void* get_queue_element(Queue *queue, size_t index);
 
 void* queue_find_first_element(Queue* queue, int (*predicate)(void*));
 
