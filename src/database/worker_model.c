@@ -25,6 +25,38 @@ WorkerModel* create_worker(const char *first_name, const char *second_name) {
 
     return res;
 }
+
+void* create_worker_copy(void *value) {
+    WorkerModel *res, *worker;
+    size_t i;
+
+    worker = (WorkerModel*) value;
+
+    if ((res = create_worker(worker->first_name, worker->second_name)) == NULL) 
+        return NULL;
+    
+    res->id = worker->id;
+
+    res->is_changed = worker->is_changed;
+
+    if (worker->roles_included) {
+        res->roles_included = 1;
+        res->roles_count = worker->roles_count;
+
+        if ((res->roles = (RoleModel*) malloc(sizeof(RoleModel) * res->roles_count)) == NULL) {
+            fprintf(stderr, "Error while memory alocation for WorkerModel roles");
+            free(res);
+            return NULL;
+        }
+
+        for (i = 0; i < res->roles_count; i++) {
+            res->roles[i] = worker->roles[i];
+        }
+    }
+
+    return res;
+}
+
 /* ================================ */
 /*                                  */
 /*        WorkerModel Setters       */
@@ -134,7 +166,9 @@ void print_worker(const WorkerModel *worker) {
 /*      WorkerModel Destructor      */
 /*                                  */
 /* ================================ */
-void free_worker(WorkerModel* worker) {
+void free_worker(void *value) {
+    WorkerModel *worker = (WorkerModel *) value;
+
     if (worker == NULL)
         return;
 
@@ -188,8 +222,8 @@ WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
     mysql_set_string_result_bind(res_bind + 1, second_name, sizeof(second_name), &second_name_len); // second_name
 
     if (mysql_request_f(conn, &stmt, res_bind, 
-        "SELECT first_name, second_name FROM worker WHERE id = %ui", &id)) {
-        fprintf(stderr, "Error while worker inserting\n");
+        "SELECT first_name, second_name FROM worker WHERE id = %ui ", &id)) {
+        fprintf(stderr, "Error while worker selecting\n");
         return NULL;
     }
 
@@ -401,6 +435,8 @@ Queue* select_workers(MYSQL *conn) {
     mysql_stmt_free_result(stmt);
     mysql_stmt_close(stmt);
 
+    set_queue_element_free_function(res, &free_worker);
+
     return res;
 }
 
@@ -413,9 +449,12 @@ Queue* refresh_workers(MYSQL *conn, Queue *workers) {
 
         worker = pop_queue_element(workers);
 
-        worker = refresh_worker(conn, &worker);
+        if (refresh_worker(conn, &worker) == NULL) {
+            free_worker(worker);
+        } else {
+            push_queue_element(workers, worker);
+        }
 
-        push_queue_element(workers, worker);
     }
     return workers;
 }
@@ -429,9 +468,18 @@ Queue* update_workers(MYSQL *conn, Queue *workers) {
 
         worker = pop_queue_element(workers);
 
-        worker = update_worker(conn, worker);
+        update_worker(conn, worker);
 
         push_queue_element(workers, worker);
     }
     return workers;
+}
+
+void delete_workers(MYSQL *conn, Queue *workers) {
+    WorkerModel *worker;
+
+    while ((worker = pop_queue_element(workers)) != NULL) {
+        delete_worker(conn, worker);
+        free_worker(worker);
+    }
 }

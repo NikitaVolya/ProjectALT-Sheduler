@@ -103,6 +103,8 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
             res_query_c++;
         }
     }
+    res_query_c++;
+    *res_query_c = '\0';
 
     return res_query;
 }

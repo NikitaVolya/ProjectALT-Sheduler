@@ -34,6 +34,8 @@ typedef struct {
 /* ================================ */
 WorkerModel* create_worker(const char *first_name, const char *second_name);
 
+void* create_worker_copy(void *value);
+
 /* ================================ */
 /*                                  */
 /*        WorkerModel Setters       */
@@ -70,7 +72,7 @@ void print_worker(const WorkerModel *worker);
 /*      WorkerModel Destructor      */
 /*                                  */
 /* ================================ */
-void free_worker(WorkerModel* worker);
+void free_worker(void *worker);
 
 
 /* ================================ */
@@ -100,5 +102,7 @@ Queue* select_workers(MYSQL *conn);
 Queue* refresh_workers(MYSQL *conn, Queue *workers);
 
 Queue* update_workers(MYSQL *conn, Queue *workers);
+
+void delete_workers(MYSQL *conn, Queue *workers);
 
 #endif /* _WORKER_MODEL_H_ */

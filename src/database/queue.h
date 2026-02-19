@@ -14,6 +14,8 @@ typedef struct QueueElement QueueElement;
 typedef struct {
     QueueElement *start, *end;
     size_t size; 
+
+    void (*free_function)(void*);
 } Queue;
 
 
@@ -28,18 +30,23 @@ Queue* create_queue();
 
 void free_queue(Queue *queue);
 
+inline size_t get_queue_size(Queue *queue) {
+    return queue->size;
+}
+
+void set_queue_element_free_function(Queue *queue, void (*free_function)(void*));
+
 Queue* push_queue_element(Queue *queue, void *value);
 
 void* pop_queue_element(Queue *queue);
 
 void* get_queue_element(Queue *queue, size_t index);
 
-void* queue_find_first_element(Queue* queue, int (*predicate)(void*));
+void* queue_find_first_element(Queue *queue, int (*predicate)(void*));
 
-inline size_t get_queue_size(Queue *queue) {
-    return queue->size;
-}
+void* create_queue_copy(Queue *queue, void* (*element_copy_f)(void*));
 
+Queue* queue_filter(Queue *queue, int (*predicate)(void*));
 
 /* ========================== */
 /*  QUEUE ITERATOR FUNCTIONS  */
@@ -47,6 +54,8 @@ inline size_t get_queue_size(Queue *queue) {
 int queue_iterator_is_end(QueueIterator *iterator);
 
 QueueIterator* get_queue_iterator(Queue* queue);
+
+QueueIterator* get_queue_iterator_backward(Queue* queue);
 
 QueueIterator* queue_iterator_forward(QueueIterator* iterator);
 
