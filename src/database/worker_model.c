@@ -143,22 +143,25 @@ size_t get_worker_roles_count(const WorkerModel *worker) {
 /*       WorkerModel functions      */
 /*                                  */
 /* ================================ */
-void print_worker(const WorkerModel *worker) {
+void fprint_worker(FILE *file, const WorkerModel *worker) {
     size_t i;
     if (worker == NULL) {
         printf("NULL\n");
     } else {
-        printf("%d %s %s | %ld", 
+        fprintf(file, "< WorkerModel %d : %s %s [", 
             get_worker_id(worker), 
             get_worker_first_name(worker), 
-            get_worker_second_name(worker), 
-            get_worker_roles_count(worker));
+            get_worker_second_name(worker));
 
         for (i = 0; i < get_worker_roles_count(worker); i++)
-            printf(" %s ", get_role_name(get_worker_role(worker, i)));
-        printf("\n");
+            fprintf(file, " %s ", get_role_name(get_worker_role(worker, i)));
+        fprintf(file, "] >\n");
     }
     
+}
+
+void print_worker(const WorkerModel *worker) {
+    fprint_worker(stdout, worker);
 }
 
 /* ================================ */
@@ -394,6 +397,11 @@ WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
     return worker;
 }
 
+/* ====================================== */
+/*                                        */
+/*        QUEUE DATABASE FUNCTIONS        */
+/*                                        */
+/* ====================================== */
 Queue* select_workers(MYSQL *conn) {
     MYSQL_BIND bind[3];
     MYSQL_STMT *stmt;

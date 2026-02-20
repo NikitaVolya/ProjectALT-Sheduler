@@ -65,6 +65,8 @@ size_t get_worker_roles_count(const WorkerModel *worker);
 /*       WorkerModel functions      */
 /*                                  */
 /* ================================ */
+void fprint_worker(FILE *file, const WorkerModel *worker);
+
 void print_worker(const WorkerModel *worker);
 
 /* ================================ */

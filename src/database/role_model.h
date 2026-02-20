@@ -30,22 +30,46 @@ RoleModel* create_role(const char *name);
 
 /* ================================ */
 /*                                  */
-/*        WorkerModel Setters       */
+/*        RoleModel Setters         */
 /*                                  */
 /* ================================ */
 void set_role_name(RoleModel *role, const char *value);
 
 /* ================================ */
 /*                                  */
-/*        WorkerModel Getters       */
+/*        RoleModel Getters         */
 /*                                  */
 /* ================================ */
 const char* get_role_name(const RoleModel *role);
 
 /* ================================ */
 /*                                  */
+/*        RoleModel functions       */
+/*                                  */
+/* ================================ */
+void fprint_role(FILE *file, const RoleModel *role);
+
+void print_role(const RoleModel *role);
+
+/* ================================ */
+/*                                  */
+/*       RoleModel destructor       */
+/*                                  */
+/* ================================ */
+void free_role(void *value);
+
+/* ================================ */
+/*                                  */
 /*        DATABASE FUNCTIONS        */
 /*                                  */
 /* ================================ */
+RoleModel* select_role_by_id(MYSQL *conn, unsigned int id);
+
+/* ====================================== */
+/*                                        */
+/*        QUEUE DATABASE FUNCTIONS        */
+/*                                        */
+/* ====================================== */
+Queue* select_roles(MYSQL *conn);
 
 #endif /* _ROLE_MODEL_H_ */

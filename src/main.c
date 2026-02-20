@@ -14,17 +14,24 @@ int main() {
     MYSQL *conn;
     Queue *queue;
     QueueIterator *it;
+    RoleModel *role;
 
     conn = mysql_create_connection("127.0.0.1", 3306, "test", "app_user", "strong_password");
     
     printf("Connected succesfully!\n");
 
-    queue = select_workers(conn);
+    queue = select_roles(conn);
 
     for (it = get_queue_iterator(queue); !queue_iterator_is_end(it); queue_iterator_forward(it)) {
-        print_worker(get_queue_iterator_value(it));
+        print_role(get_queue_iterator_value(it));
     }
     printf("======================\n");
+
+    role = select_role_by_id(conn, 10);
+    print_role(role);
+
+    if (role != NULL)
+        free_role(role);
     
     free_queue(queue);
     
