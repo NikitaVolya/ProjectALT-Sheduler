@@ -103,6 +103,10 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
             res_query_c++;
         }
     }
+
+    /* delete whitespace in end of query */
+    res_query_c--;
+    while (*res_query_c == ' ') res_query_c--;
     res_query_c++;
     *res_query_c = '\0';
 
@@ -113,6 +117,7 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
     char *f_query;
     MYSQL_BIND *prop_bind = NULL;
     va_list parameters;
+    unsigned int error_code;
     
     va_start(parameters, query);
     f_query = mysql_init_prop_binds((char *) query, &prop_bind, &parameters);
@@ -139,8 +144,9 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
 
     if (mysql_stmt_execute(*stmt)) {
         fprintf(stderr, "mysql_stmt_execute() failed: %s\n", mysql_stmt_error(*stmt));
+        error_code = mysql_stmt_errno(*stmt);
         mysql_stmt_close(*stmt);
-        return 1;
+        return error_code;
     }
 
     if (res_bind != NULL && mysql_stmt_bind_result(*stmt, res_bind)) {

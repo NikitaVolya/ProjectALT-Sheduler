@@ -153,8 +153,11 @@ void fprint_worker(FILE *file, const WorkerModel *worker) {
             get_worker_first_name(worker), 
             get_worker_second_name(worker));
 
-        for (i = 0; i < get_worker_roles_count(worker); i++)
-            fprintf(file, " %s ", get_role_name(get_worker_role(worker, i)));
+        for (i = 0; i < get_worker_roles_count(worker); i++) {
+            if (i != 0)
+                fprintf(file, ", ");
+            fprintf(file, " %s", get_role_name(get_worker_role(worker, i)));
+        }
         fprintf(file, "] >\n");
     }
     
@@ -189,7 +192,7 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
     MYSQL_STMT *stmt;
     
     if (worker == NULL || worker->id != 0) {
-        fprintf(stderr, "Error : Worker is NULL or already exists with this id\n");
+        fprintf(stderr, "Error : Worker is NULL or already exists\n");
         return NULL;
     }
 
@@ -339,8 +342,8 @@ WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker) {
 WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker) {
     MYSQL_STMT *stmt;
 
-    if (worker == NULL) {
-        fprintf(stderr, "Error : worker is NULL\n");
+    if (worker == NULL || worker->id == 0) {
+        fprintf(stderr, "Error : worker is NULL or not exists in data base\n");
         return NULL;
     }
 
@@ -372,7 +375,7 @@ WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
     }
     
     if (mysql_request_f(conn, &stmt, NULL, 
-        "DELETE FROM worker WHERE id = %ui", &worker->id)) {
+        "DELETE FROM worker WHERE id = %ui ", &worker->id)) {
         return worker;
     }
 
@@ -394,6 +397,58 @@ WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
 
     mysql_stmt_close(stmt);
     return worker;
+}
+
+WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role) {
+    MYSQL_STMT *stmt;
+    unsigned int code;
+
+    if (worker == NULL || *worker == NULL) {
+        fprintf(stderr, "WorkerModel is NULL\n");
+        return NULL;
+    }
+
+    if (role == NULL) {
+        fprintf(stderr, "RoleModel is NULL\n");
+        return NULL;
+    }
+
+    if ((*worker)->id == 0) {
+        fprintf(stderr, "WorkerModel is not exist in data base\n");
+        return NULL;
+    }
+    if (role->id == 0) {
+        fprintf(stderr, "RoleModel is not exist in data base\n");
+        return NULL;
+    }
+
+    if ((*worker)->is_changed) {
+        fprintf(stderr, "Befor adding new role to worker\nNeed to update or refresh WorkerModel\n");
+        return NULL;
+    }
+
+    if (role->is_changed) {
+        fprintf(stderr, "Befor adding new role to worker\nNeed to update or refresh RoleModel\n");
+        return NULL;
+    }
+
+    code = mysql_request_f(conn, &stmt, NULL, 
+        "INSERT INTO worker_role(worker_id, role_id) VALUES (%ui, %ui)",  &(*worker)->id, &role->id);
+    if (code == 1062) {
+        fprintf(stderr, "WorkerModel already have this role\n");
+        return *worker;
+    } else if (code != 0) {
+            
+        fprintf(stderr, "Error while worker role inserting\n");
+        return NULL;
+    }
+
+    if ((*worker)->roles_included) {
+        refresh_worker(conn, worker);
+    }
+
+    mysql_stmt_close(stmt);
+    return *worker;
 }
 
 /* ====================================== */

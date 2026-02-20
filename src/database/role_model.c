@@ -59,7 +59,7 @@ const char* get_role_name(const RoleModel *role) {
 /* ================================ */
 void fprint_role(FILE *file, const RoleModel *role) {
     if (role == NULL) {
-        fprintf(file, "Role is NULL\n");
+        fprintf(file, "RoleModel is NULL\n");
     } else {
         fprintf(file, "< RoleModel %d : %s >\n", role->id, role->name);
     }
@@ -83,6 +83,25 @@ void free_role(void *value) {
 /*        DATABASE FUNCTIONS        */
 /*                                  */
 /* ================================ */
+RoleModel* add_role(MYSQL *conn, RoleModel* role) {
+    MYSQL_STMT *stmt;
+    
+    if (role == NULL || role->id != 0) {
+        fprintf(stderr, "Error : RoleModel is NULL or already exists\n");
+        return NULL;
+    }
+
+    if (mysql_request_f(conn, &stmt, NULL, "INSERT INTO `role`(name) VALUES (%s)", role->name)) {
+        fprintf(stderr, "Error while RoleModel inserting\n");
+        return NULL;
+    }
+    role->id = mysql_stmt_insert_id(stmt);
+    role->is_changed = 0;
+    
+    mysql_stmt_close(stmt);
+    return role;
+}
+
 RoleModel* select_role_by_id(MYSQL *conn, unsigned int id) {
     RoleModel *res;
     MYSQL_STMT *stmt;
@@ -101,8 +120,9 @@ RoleModel* select_role_by_id(MYSQL *conn, unsigned int id) {
     /*      RESULT BIND        */
     mysql_set_string_result_bind(res_bind, res->name, sizeof(res->name), &name_len);    // name
 
-    if (mysql_request_f(conn, &stmt, res_bind, "SELECT name FROM `role` WHERE id = %ui ", &id)) {
+    if (mysql_request_f(conn, &stmt, res_bind, "SELECT name FROM `role` WHERE id = %ui", &id)) {
         fprintf(stderr, "Error while worker selecting\n");
+        free_role(res);
         return NULL;
     }
 
@@ -118,6 +138,74 @@ RoleModel* select_role_by_id(MYSQL *conn, unsigned int id) {
     mysql_stmt_close(stmt);
 
     return res;
+}
+
+RoleModel* refresh_role(MYSQL *conn, RoleModel **role) {
+    RoleModel *res;
+
+    if (role == NULL || *role == NULL) {
+        fprintf(stderr, "Error : RoleModel is NULL\n");
+        return NULL;
+    }
+
+    if ((*role)->id == 0 || 
+        (res = select_role_by_id(conn, (*role)->id )) == NULL) {
+        fprintf(stderr, "Error : RoleModel is not found in data base\n");
+        return NULL;
+    }
+
+    free_role(*role);
+    *role = res;
+    return res;
+}
+
+RoleModel* update_role(MYSQL *conn, RoleModel *role) {
+    MYSQL_STMT *stmt;
+
+    if (role == NULL || role->id == 0) {
+        fprintf(stderr, "Error : RoleModel is NULL or not exist in data base\n");
+        return NULL;
+    }
+
+    if (mysql_request_f(conn, &stmt, NULL, 
+            "UPDATE `role` SET name = %s WHERE id = %ui", role->name, &role->id)) {
+        return role;
+    }
+
+    if (mysql_stmt_affected_rows(stmt) == 0 && role->is_changed) {
+        fprintf(stderr, "RoleModel is not updated\n");
+        role = NULL;
+    } else {
+        role->is_changed = 0;
+    }
+
+    mysql_stmt_close(stmt);
+    return role;
+}
+
+
+RoleModel* delete_role(MYSQL *conn, RoleModel *role) {
+    MYSQL_STMT *stmt;
+
+    if (role == NULL || role->id == 0) {
+        fprintf(stderr, "Error : RoleModel is NULL or not exist in data base\n");
+        return NULL;
+    }
+    
+    if (mysql_request_f(conn, &stmt, NULL, 
+        "DELETE FROM `role` WHERE id = %ui ", &role->id)) {
+        return role;
+    }
+
+    if (mysql_stmt_affected_rows(stmt) == 0) {
+        fprintf(stderr, "RoleModel is not deleted\n");
+    }
+
+    role->id = 0;
+    role->is_changed = 0;
+
+    mysql_stmt_close(stmt);
+    return role;
 }
 
 /* ====================================== */
@@ -167,4 +255,48 @@ Queue* select_roles(MYSQL *conn) {
     set_queue_element_free_function(res, &free);
 
     return res;
+}
+
+Queue* refresh_roles(MYSQL *conn, Queue *roles) {
+    RoleModel *role;
+    size_t i = get_queue_size(roles);
+
+    while (i > 0) {
+        i--;
+
+        role = pop_queue_element(roles);
+
+        if (refresh_role(conn, &role) == NULL) {
+            free_role(role);
+        } else {
+            push_queue_element(roles, role);
+        }
+
+    }
+    return roles;
+}
+
+Queue* update_roles(MYSQL *conn, Queue *roles) {
+    RoleModel *role;
+    size_t i = get_queue_size(roles);
+
+    while (i > 0) {
+        i--;
+
+        role = pop_queue_element(roles);
+
+        update_role(conn, role);
+
+        push_queue_element(roles, role);
+    }
+    return roles;
+}
+
+void delete_roles(MYSQL *conn, Queue *roles) {
+    RoleModel *role;
+
+    while ((role = pop_queue_element(roles)) != NULL) {
+        delete_role(conn, role);
+        free_role(role);
+    }
 }
