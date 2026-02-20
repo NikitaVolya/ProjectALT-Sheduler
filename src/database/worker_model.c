@@ -146,7 +146,7 @@ size_t get_worker_roles_count(const WorkerModel *worker) {
 void fprint_worker(FILE *file, const WorkerModel *worker) {
     size_t i;
     if (worker == NULL) {
-        printf("NULL\n");
+        printf("WorkerModel is NULL\n");
     } else {
         fprintf(file, "< WorkerModel %d : %s %s [", 
             get_worker_id(worker), 
@@ -213,34 +213,33 @@ WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
     
     /* BINDS FOR REQUEST */
     MYSQL_BIND res_bind[2];
-
-    char first_name[WORKER_FIRST_NAME_MAX_SIZE], 
-         second_name[WORKER_SECOND_NAME_MAX_SIZE];
     unsigned long first_name_len, second_name_len;
+
+    if ((res = create_worker("", "")) == NULL) {
+        fprintf(stderr, "Error while memory alocation of WorkerModel\n");
+        return NULL;
+    }
 
     memset(res_bind, 0, sizeof(res_bind));
 
     /*      RESULT BIND        */
-    mysql_set_string_result_bind(res_bind + 0, first_name, sizeof(first_name), &first_name_len);    // first_name
-    mysql_set_string_result_bind(res_bind + 1, second_name, sizeof(second_name), &second_name_len); // second_name
+    mysql_set_string_result_bind(res_bind + 0, res->first_name, sizeof(res->first_name), &first_name_len);    // first_name
+    mysql_set_string_result_bind(res_bind + 1, res->second_name, sizeof(res->second_name), &second_name_len); // second_name
 
     if (mysql_request_f(conn, &stmt, res_bind, 
         "SELECT first_name, second_name FROM worker WHERE id = %ui ", &id)) {
         fprintf(stderr, "Error while worker selecting\n");
+        free_worker(res);
         return NULL;
     }
 
     if (mysql_stmt_fetch(stmt) == 0) {
 
-        first_name[first_name_len] = '\0';
-        second_name[second_name_len] = '\0';
-
-        if ((res = create_worker(first_name, second_name)) != NULL) {
-            res->id = id;
-        } else {
-            res = NULL;
-        }
+        res->first_name[first_name_len] = '\0';
+        res->second_name[second_name_len] = '\0';
+        res->id = id;
     } else {
+        free_worker(res);
         res = NULL;
     }
     
