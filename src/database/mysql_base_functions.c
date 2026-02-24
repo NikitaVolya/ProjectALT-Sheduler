@@ -1,18 +1,39 @@
 #include"mysql_base_functions.h"
 
+/* ======================================== */
+/*         REQUESTF_RESULT FUNCTIONS        */
+/* ======================================== */
+void free_requestf_result(REQUESTF_RESULT *value) {
+    mysql_stmt_close(value->stmt);
+    
+}
+
+
 /* =========================== */
 /*         RESULT BINDS        */
 /* =========================== */
 void mysql_set_uint_result_bind(MYSQL_BIND *bind, unsigned int *id) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
     bind->buffer_type = MYSQL_TYPE_LONG;
     bind->buffer = id;
 }
 
 void mysql_set_string_result_bind(MYSQL_BIND *bind, char *s, unsigned long buffer_size, unsigned long *s_size) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
     bind->buffer_type = MYSQL_TYPE_STRING;
     bind->buffer = s;
     bind->buffer_length = buffer_size;
     bind->length = s_size;
+}
+
+void mysql_set_short_result_bind(MYSQL_BIND *bind, short *value) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    bind[0].buffer_type = MYSQL_TYPE_SHORT;
+    bind[0].buffer = value;
+    bind[0].is_unsigned = 0;
 }
 
 
@@ -20,15 +41,27 @@ void mysql_set_string_result_bind(MYSQL_BIND *bind, char *s, unsigned long buffe
 /*          PROPS BINDS        */
 /* =========================== */
 void mysql_set_string_prop_bind(MYSQL_BIND *bind, char *s) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
     bind->buffer_type = MYSQL_TYPE_STRING;
     bind->buffer = s;
     bind->buffer_length = strlen(s);
 }
 
 void mysql_set_uint_prop_bind(MYSQL_BIND *bind, unsigned int *value) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
     bind->buffer_type = MYSQL_TYPE_LONG;
     bind->buffer = value;
     bind->is_unsigned = 1;
+}
+
+void mysql_set_short_prop_bind(MYSQL_BIND *bind, short *value) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    bind[0].buffer_type = MYSQL_TYPE_SHORT;
+    bind[0].buffer = value;
+    bind[0].is_unsigned = 0;
 }
 
 
@@ -73,6 +106,7 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
     /* parsing params */
     /* %s => string */
     /* %ui => unsigned int */
+    /* %d => short */
     for (query_c = query; *query_c != '\0'; query_c++) {
 
         if (*query_c == '%') {
@@ -82,9 +116,13 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
                 mysql_set_string_prop_bind(*res_binds + i, (char*) va_arg(*list, char*));
                 query_c++;
             } 
+            /* short param */
+            else if (query_c[1] == 'd') {
+                mysql_set_short_prop_bind(*res_binds + i, (short*) va_arg(*list, short*));
+                query_c++;
+            }
             /* unsigned int param */
             else if (query_c[1] == 'u' && query_c[2] == 'i') {
-
                 mysql_set_uint_prop_bind(*res_binds + i, (unsigned int*) va_arg(*list, unsigned int*));
                 query_c = query_c + 2;
             } 
@@ -121,6 +159,145 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
     
     va_start(parameters, query);
     f_query = mysql_init_prop_binds((char *) query, &prop_bind, &parameters);
+    va_end(parameters);
+
+    *stmt = mysql_stmt_init(conn);
+    if (!*stmt) {
+        fprintf(stderr, "mysql_stmt_init() failed\n");
+        return 1;
+    }
+
+    if (mysql_stmt_prepare(*stmt, f_query, strlen(f_query))) {
+        fprintf(stderr, "mysql_stmt_prepare() failed: %s\n", mysql_stmt_error(*stmt));
+        mysql_stmt_close(*stmt);
+        return 1;
+    }
+
+    if (prop_bind != NULL && mysql_stmt_bind_param(*stmt, prop_bind)) {
+        fprintf(stderr, "Bind failed: %s\n", mysql_stmt_error(*stmt));
+        mysql_stmt_close(*stmt);
+        free(prop_bind);
+        return 1;
+    } 
+
+    if (mysql_stmt_execute(*stmt)) {
+        fprintf(stderr, "mysql_stmt_execute() failed: %s\n", mysql_stmt_error(*stmt));
+        error_code = mysql_stmt_errno(*stmt);
+        mysql_stmt_close(*stmt);
+
+        if (prop_bind != NULL) {
+            free(prop_bind);
+        }
+
+        return error_code;
+    }
+
+    if (res_bind != NULL && mysql_stmt_bind_result(*stmt, res_bind)) {
+        fprintf(stderr, "mysql_stmt_bind_result() failed: %s\n", mysql_stmt_error(*stmt));
+        mysql_stmt_close(*stmt);
+
+        if (prop_bind != NULL) {
+            free(prop_bind);
+        }
+        
+        return 1;
+    }
+
+    if (mysql_stmt_store_result(*stmt)) {
+        fprintf(stderr, "mysql_stmt_store_result() failed: %s\n", mysql_stmt_error(*stmt));
+        mysql_stmt_close(*stmt);
+        return 1;
+    }
+
+    if (prop_bind != NULL) {
+        free(prop_bind);
+    }
+
+    free(f_query);
+
+    return 0;
+}
+
+MYSQL_BIND* mysql_init_result_binds(char *query, va_list *list) {
+    char *query_c;
+    int binds_count, from_found, i;
+    MYSQL_RBIND_TYPE field_type;
+    MYSQL_BIND* res;
+
+    query_c = query;
+    while (*query_c == ' ') query_c++;
+
+    if (!strprefix(query_c, "SELECT")) {
+        return NULL;
+    }
+
+    binds_count = 1;
+    from_found = 0;
+    while (*query_c != '\0' && !from_found) {
+        if (*query_c == ',')
+            binds_count++;
+
+        if (strprefix(query_c, "FROM")) {
+            from_found = 1;
+        }
+    }
+
+    res = (MYSQL_BIND*) calloc(binds_count, sizeof(MYSQL_BIND));
+    if (res == NULL) {
+        fprintf(stderr, "Error while memory allocation for result binds\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for(i = 0; i < binds_count; i++) {
+        field_type = (MYSQL_RBIND_TYPE) va_arg(*list, MYSQL_RBIND_TYPE);
+        switch (field_type)
+        {
+        case MYSQL_RBIND_STRING:
+            res[i].buffer_type = MYSQL_TYPE_STRING;
+            res[i].buffer_length = 256;
+
+            res[i].buffer = (char*) malloc(sizeof(char) * 256);
+            if (res[i].buffer == NULL) {
+                free(res);
+                return NULL;
+            }
+
+            res[i].length = (unsigned long *) malloc(sizeof(unsigned long));
+            if (res[i].length == NULL) {
+                free(res);
+                return NULL;
+            }
+            break;
+        case MYSQL_RBIND_UINT:
+            res[i].buffer_type = MYSQL_TYPE_LONG;
+            res[i].buffer = (unsigned long *) malloc(sizeof(unsigned int));
+            break;
+        case MYSQL_RBIND_SHORT:
+            res[i].buffer_type = MYSQL_TYPE_SHORT;
+            res[i].buffer = (short *) malloc(sizeof(short));
+            res[i].is_unsigned = 0;
+            break;
+        default:
+            fprintf(stderr, "Error invalide result bind\n");
+            free(res);
+            return NULL;
+        }
+    }
+
+    return res;
+}
+
+int mysql_request_f_result(MYSQL *conn, MYSQL_STMT **stmt, const char *query, ...) {
+    char *f_query;
+    MYSQL_BIND *prop_bind = NULL, *res_bind = NULL;
+    va_list parameters;
+    unsigned int error_code;
+    
+    va_start(parameters, query);
+
+    res_bind = mysql_init_result_binds((char *) query, &parameters);
+    f_query = mysql_init_prop_binds((char *) query, &prop_bind, &parameters);
+
     va_end(parameters);
 
     *stmt = mysql_stmt_init(conn);

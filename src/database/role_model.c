@@ -21,6 +21,26 @@ RoleModel* create_role(const char *name) {
     return res;
 }
 
+void* create_role_copy(void *value) {
+    RoleModel *role, *res;
+
+    role = value;
+
+    if (role == NULL) {
+        fprintf(stderr, "Error RoleModel is NULL\n");
+        return NULL;
+    }
+
+    if ((res = create_role(role->name)) == NULL) {
+        return NULL;
+    }
+
+    res->id = role->id;
+    res->is_changed = role->is_changed;
+
+    return role;
+}
+
 
 /* ================================ */
 /*                                  */
@@ -252,7 +272,7 @@ Queue* select_roles(MYSQL *conn) {
     mysql_stmt_free_result(stmt);
     mysql_stmt_close(stmt);
 
-    set_queue_element_free_function(res, &free);
+    set_queue_element_free_function(res, &free_role);
 
     return res;
 }

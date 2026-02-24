@@ -40,18 +40,19 @@ void* create_worker_copy(void *value) {
     res->is_changed = worker->is_changed;
 
     if (worker->roles_included) {
-        res->roles_included = 1;
         res->roles_count = worker->roles_count;
 
         if ((res->roles = (RoleModel*) malloc(sizeof(RoleModel) * res->roles_count)) == NULL) {
-            fprintf(stderr, "Error while memory alocation for WorkerModel roles");
-            free(res);
+            fprintf(stderr, "Error while memory alocation for WorkerModel roles\n");
+            free_worker(res);
             return NULL;
         }
 
         for (i = 0; i < res->roles_count; i++) {
             res->roles[i] = worker->roles[i];
         }
+        
+        res->roles_included = 1;
     }
 
     return res;
@@ -148,7 +149,7 @@ void fprint_worker(FILE *file, const WorkerModel *worker) {
     if (worker == NULL) {
         printf("WorkerModel is NULL\n");
     } else {
-        fprintf(file, "< WorkerModel %d : %s %s [", 
+        fprintf(file, "< WorkerModel %d : %s %s [ ", 
             get_worker_id(worker), 
             get_worker_first_name(worker), 
             get_worker_second_name(worker));
@@ -156,9 +157,9 @@ void fprint_worker(FILE *file, const WorkerModel *worker) {
         for (i = 0; i < get_worker_roles_count(worker); i++) {
             if (i != 0)
                 fprintf(file, ", ");
-            fprintf(file, " %s", get_role_name(get_worker_role(worker, i)));
+            fprintf(file, "%s", get_role_name(get_worker_role(worker, i)));
         }
-        fprintf(file, "] >\n");
+        fprintf(file, " ] >\n");
     }
     
 }
@@ -188,6 +189,7 @@ void free_worker(void *value) {
 /*        DATABASE FUNCTIONS        */
 /*                                  */
 /* ================================ */
+
 WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
     MYSQL_STMT *stmt;
     
@@ -264,7 +266,7 @@ WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
 
     /* check on worker data */
     if (worker == NULL) {
-        fprintf(stderr, "select_worker_roles : worker is invalide or NULL\n");
+        fprintf(stderr, "include_worker_roles : worker is invalide or NULL\n");
         return worker;
     }
 

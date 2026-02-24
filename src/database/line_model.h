@@ -1,91 +1,101 @@
-#ifndef _ROLE_MODEL_H_
-#define _ROLE_MODEL_H_
+#ifndef _LINE_MODEL_H_
+#define _LINE_MODEL_H_
+
+#define LINE_NAME_MAX_SIZE 101
+#define LINE_PRODUCT_NAME_MAX_SIZE 101
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "mysql_base_functions.h"
+#include "role_model.h"
 #include "queue.h"
 
 #include "../utils.h"
-
-#define ROLE_NAME_MAX_SIZE 256
 
 
 typedef struct {
     unsigned int id;
     char name[ROLE_NAME_MAX_SIZE];
-    
+    short count;
+} LineRoleCount;
+
+typedef struct {
+    unsigned int id;
+    char name[LINE_NAME_MAX_SIZE];
+    char product_name[LINE_PRODUCT_NAME_MAX_SIZE];
+
+    LineRoleCount *roles;
+    size_t roles_count;
+    short roles_included;
+
     short is_changed;
-} RoleModel;
-
+} LineModel;
 
 /* ================================ */
 /*                                  */
-/*       RoleModel Constructot      */
+/*       LineModel Constructot      */
 /*                                  */
 /* ================================ */
-RoleModel* create_role(const char *name);
+LineModel* create_line(const char *name, const char *product_name);
 
-void* create_role_copy(void *value);
+void* create_line_copy(void *value);
 
 /* ================================ */
 /*                                  */
 /*        RoleModel Setters         */
 /*                                  */
 /* ================================ */
-void set_role_name(RoleModel *role, const char *value);
+void set_line_name(LineModel *line, const char *value);
+
+void set_line_product_name(LineModel *line, const char *value);
 
 /* ================================ */
 /*                                  */
 /*        RoleModel Getters         */
 /*                                  */
 /* ================================ */
-const char* get_role_name(const RoleModel *role);
+const char* get_line_name(LineModel *line);
+
+const char* get_line_product_name(LineModel *line);
+
+const LineRoleCount* get_line_roles(LineModel *line, size_t index);
+
+size_t get_line_roles_count(LineModel *line);
 
 /* ================================ */
 /*                                  */
 /*        RoleModel functions       */
 /*                                  */
 /* ================================ */
-void fprint_role(FILE *file, const RoleModel *role);
+void fprint_line(FILE *file, const LineModel *role);
 
-void print_role(const RoleModel *role);
-
-/* ================================ */
-/*                                  */
-/*       RoleModel destructor       */
-/*                                  */
-/* ================================ */
-void free_role(void *value);
+void print_line(const LineModel *role);
 
 /* ================================ */
 /*                                  */
-/*        DATABASE FUNCTIONS        */
+/*      LineModel Destructor        */
 /*                                  */
 /* ================================ */
-RoleModel* add_role(MYSQL *conn, RoleModel* role);
+void free_line(void *value);
 
-RoleModel* select_role_by_id(MYSQL *conn, unsigned int id);
+/* ================================ */
+/*                                  */
+/*       DATABASE FUNCTIONS         */
+/*                                  */
+/* ================================ */
+LineModel* add_line(MYSQL *conn, LineModel *line);
 
-RoleModel* refresh_role(MYSQL *conn, RoleModel **role);
+LineModel* select_line_by_id(MYSQL *conn, unsigned int id);
 
-RoleModel* update_role(MYSQL *conn, RoleModel *role);
-
-RoleModel* delete_role(MYSQL *conn, RoleModel *role);
+LineModel* include_line_roles(MYSQL *conn, LineModel *line);
 
 /* ====================================== */
 /*                                        */
 /*        QUEUE DATABASE FUNCTIONS        */
 /*                                        */
 /* ====================================== */
-Queue* select_roles(MYSQL *conn);
+Queue* select_lines(MYSQL *conn);
 
-Queue* refresh_roles(MYSQL *conn, Queue *roles);
-
-Queue* update_roles(MYSQL *conn, Queue *roles);
-
-void delete_roles(MYSQL *conn, Queue *roles);
-
-#endif /* _ROLE_MODEL_H_ */
+#endif /* _LINE_MODEL_H_ */
