@@ -3,29 +3,30 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "database/mysql_base_functions.h"
+#include "database/worker_model.h"
 
 
 int main() {
     MYSQL *conn;
-    REQUESTF_RESULT *requestf_r;
-    unsigned int role_id, line_id, test;
-    short count;
+    Queue *queue;
+    QueueIterator *it;
+    WorkerModel *worker; 
 
     conn = mysql_create_connection("127.0.0.1", 3306, "test", "app_user", "strong_password");
     
-    test = 2;
-    requestf_r = mysql_request_f_result(conn, 
-        "SELECT line_id, role_id, count FROM line_role WHERE line_id = %ui", &test,
-        MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_SHORT);
+    queue = select_workers(conn);
+    printf("REQUEST DONE\n");
 
-    printf("Request DONE\n");
+    for(it = get_queue_iterator(queue); 
+        !queue_iterator_is_end(it);
+        queue_iterator_forward(it)) {
 
-    while (requestf_result_fetch(requestf_r, &line_id, &role_id, &count) == 0) {
-        printf("%d %d %d\n", line_id, role_id, count);
+        worker = get_queue_iterator_value(it);
+        print_worker(worker);
     }
 
-    free_requestf_result(requestf_r);
+    close_queue_iterator(it);
+    free_queue(queue);
     
     mysql_close(conn);
     

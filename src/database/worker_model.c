@@ -214,55 +214,42 @@ WorkerModel* add_worker(MYSQL *conn, WorkerModel* worker) {
 
 WorkerModel* select_worker_by_id(MYSQL *conn, unsigned int id) {
     WorkerModel *res;
-    MYSQL_STMT *stmt;
-    
-    /* BINDS FOR REQUEST */
-    MYSQL_BIND res_bind[2];
-    unsigned long first_name_len, second_name_len;
+    REQUESTF_RESULT *request_result;
 
     if ((res = create_worker("", "")) == NULL) {
         fprintf(stderr, "Error while memory alocation of WorkerModel\n");
         return NULL;
     }
 
-    memset(res_bind, 0, sizeof(res_bind));
+    request_result = mysql_request_f_result(conn, 
+        "SELECT first_name, second_name FROM worker WHERE id = %ui ", &id,
+        MYSQL_BIND_STRING, MYSQL_BIND_STRING);
 
-    /*      RESULT BIND        */
-    mysql_set_string_result_bind(res_bind + 0, res->first_name, sizeof(res->first_name), &first_name_len);    // first_name
-    mysql_set_string_result_bind(res_bind + 1, res->second_name, sizeof(res->second_name), &second_name_len); // second_name
-
-    if (mysql_request_f(conn, &stmt, res_bind, 
-        "SELECT first_name, second_name FROM worker WHERE id = %ui ", &id)) {
+    if (get_requestf_code(request_result) != 0) {
         fprintf(stderr, "Error while worker selecting\n");
         free_worker(res);
+        free_requestf_result(request_result);
         return NULL;
     }
 
-    if (mysql_stmt_fetch(stmt) == 0) {
-
-        res->first_name[first_name_len] = '\0';
-        res->second_name[second_name_len] = '\0';
+    if (requestf_result_fetch(request_result,
+        WORKER_FIRST_NAME_MAX_SIZE, res->first_name,
+        WORKER_SECOND_NAME_MAX_SIZE, res->second_name) == 0) {
         res->id = id;
     } else {
         free_worker(res);
         res = NULL;
     }
     
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
+    free_requestf_result(request_result);
 
     return res;
 }
 
 
 WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
-    MYSQL_STMT *stmt;
-    MYSQL_BIND res_bind[2];
-
+    REQUESTF_RESULT *request_result;
     int i = 0;
-    unsigned int role_id;
-    char role_name[ROLE_NAME_MAX_SIZE];
-    unsigned long role_name_len;
 
     /* check on worker data */
     if (worker == NULL) {
@@ -276,42 +263,36 @@ WorkerModel* include_worker_roles(MYSQL *conn, WorkerModel *worker) {
         worker->roles = NULL;
         worker->roles_count = 0;
     }
-    
-    memset(res_bind, 0, sizeof(res_bind));
 
-    mysql_set_uint_result_bind(res_bind, &role_id);                                               // role_id
-    mysql_set_string_result_bind(res_bind + 1, role_name, sizeof(role_name), &role_name_len);     // role_name
-
-    if (mysql_request_f(conn, &stmt, res_bind, 
+    request_result = mysql_request_f_result(conn,
             "SELECT `role`.id, `role`.name "
             "FROM `role`, worker_role AS wr "
             "WHERE wr.role_id = `role`.id "
-            "AND wr.worker_id = %ui", &worker->id)) {
+            "AND wr.worker_id = %ui", &worker->id,
+            MYSQL_BIND_UINT, MYSQL_BIND_STRING);
+
+    if (get_requestf_code(request_result) != 0) {
+        free_requestf_result(request_result);
         return worker;
     }
 
-    worker->roles_count = mysql_stmt_num_rows(stmt);
+    worker->roles_count = get_requestf_num_rows(request_result);
+
     if (worker->roles_count != 0 && 
         (worker->roles = (RoleModel*) malloc(sizeof(RoleModel) * worker->roles_count)) == NULL) {
-        mysql_stmt_free_result(stmt);
-        mysql_stmt_close(stmt);
+        free_requestf_result(request_result);
         return worker;
     }
 
-    while (mysql_stmt_fetch(stmt) == 0) {
-
-        role_name[role_name_len] = '\0';
-        
-        worker->roles[i].id = role_id;
-        strcpy(worker->roles[i].name, role_name);
-
+    i = 0;
+    while (requestf_result_fetch(request_result,
+           &worker->roles[i].id,
+           ROLE_NAME_MAX_SIZE, worker->roles[i].name) == 0) {
         i++;
     }
 
     worker->roles_included = 1;
-
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
+    free_requestf_result(request_result);
 
     return worker;
 }
@@ -342,68 +323,68 @@ WorkerModel* refresh_worker(MYSQL *conn, WorkerModel **worker) {
 
 
 WorkerModel* update_worker(MYSQL *conn, WorkerModel *worker) {
-    MYSQL_STMT *stmt;
+    REQUESTF_RESULT *request_result;
 
     if (worker == NULL || worker->id == 0) {
         fprintf(stderr, "Error : worker is NULL or not exists in data base\n");
         return NULL;
     }
 
-    if (mysql_request_f(conn, &stmt, NULL, 
-            "UPDATE worker "
-            "SET first_name=%s, second_name=%s "
-            "WHERE id=%ui ", worker->first_name, worker->second_name, &worker->id)) {
+    request_result = mysql_request_f_result(conn,
+        "UPDATE worker "
+        "SET first_name=%s, second_name=%s "
+        "WHERE id=%ui ", worker->first_name, worker->second_name, &worker->id);
+    
+    if (get_requestf_code(request_result) != 0) {
+        free_requestf_result(request_result);
         return worker;
     }
 
-    if (mysql_stmt_affected_rows(stmt) == 0 && worker->is_changed) {
-        fprintf(stderr, "Worker is not updated\n");
-        worker = NULL;
-    } else {
-        worker->is_changed = 0;
-    }
+    worker->is_changed = 0;
 
-    mysql_stmt_close(stmt);
+    free_requestf_result(request_result);
     return worker;
 }
 
 
 WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker) {
-    MYSQL_STMT *stmt;
+    REQUESTF_RESULT *request_result;
 
     if (worker == NULL) {
         fprintf(stderr, "Error : worker is NULL\n");
         return NULL;
     }
+
+    request_result = mysql_request_f_result(conn,
+        "DELETE FROM worker WHERE id = %ui ", &worker->id);
     
-    if (mysql_request_f(conn, &stmt, NULL, 
-        "DELETE FROM worker WHERE id = %ui ", &worker->id)) {
+    if (get_requestf_code(request_result) != 0) {
         return worker;
     }
 
-    if (mysql_stmt_affected_rows(stmt) == 0) {
+    if (get_requestf_affected_rows(request_result) == 0) {
         fprintf(stderr, "Worker is not deleted\n");
-    }
+    } else {
 
-    worker->id = 0;
-    worker->is_changed = 0;
-    
-    if (worker->roles_included) {
-        worker->roles_included = 0;
-        if (worker->roles != NULL) {
-            free(worker->roles);
-            worker->roles = NULL;
+        worker->id = 0;
+        worker->is_changed = 0;
+        
+        if (worker->roles_included) {
+            worker->roles_included = 0;
+            if (worker->roles != NULL) {
+                free(worker->roles);
+                worker->roles = NULL;
+            }
+            worker->roles_count = 0;
         }
-        worker->roles_count = 0;
     }
 
-    mysql_stmt_close(stmt);
+    free_requestf_result(request_result);
     return worker;
 }
 
 WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role) {
-    MYSQL_STMT *stmt;
-    unsigned int code;
+    REQUESTF_RESULT *request_result;
 
     if (worker == NULL || *worker == NULL) {
         fprintf(stderr, "WorkerModel is NULL\n");
@@ -434,14 +415,15 @@ WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role)
         return NULL;
     }
 
-    code = mysql_request_f(conn, &stmt, NULL, 
+    request_result = mysql_request_f_result(conn,
         "INSERT INTO worker_role(worker_id, role_id) VALUES (%ui, %ui)",  &(*worker)->id, &role->id);
-    if (code == 1062) {
+    if (get_requestf_code(request_result) == 1062) {
         fprintf(stderr, "WorkerModel already have this role\n");
+        free_requestf_result(request_result);
         return *worker;
-    } else if (code != 0) {
-            
+    } else if (get_requestf_code(request_result) != 0) {
         fprintf(stderr, "Error while worker role inserting\n");
+        free_requestf_result(request_result);
         return NULL;
     }
 
@@ -449,7 +431,7 @@ WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role)
         refresh_worker(conn, worker);
     }
 
-    mysql_stmt_close(stmt);
+    free_requestf_result(request_result);
     return *worker;
 }
 
@@ -459,48 +441,41 @@ WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role)
 /*                                        */
 /* ====================================== */
 Queue* select_workers(MYSQL *conn) {
-    MYSQL_BIND bind[3];
-    MYSQL_STMT *stmt;
+    REQUESTF_RESULT *result;
 
-    unsigned int id;
-    char first_name[WORKER_FIRST_NAME_MAX_SIZE], second_name[WORKER_SECOND_NAME_MAX_SIZE];
-    unsigned long first_name_len, second_name_len;
-
-    WorkerModel *tmp;
+    WorkerModel tmp, *new_worker;
     Queue *res;
 
-    memset(bind, 0, sizeof(bind));
-
-    mysql_set_uint_result_bind(bind, &id);                                                      // id
-    mysql_set_string_result_bind(bind + 1, first_name, sizeof(first_name), &first_name_len);    // first_name
-    mysql_set_string_result_bind(bind + 2, second_name, sizeof(second_name), &second_name_len); // second_name
-
-    if (mysql_request_f(conn, &stmt, bind, "SELECT id, first_name, second_name FROM worker")) {
-        return NULL;
-    }
-
     if ((res = create_queue()) == NULL) {
-        mysql_stmt_free_result(stmt);
-        mysql_stmt_close(stmt);
         return NULL;
     }
 
-    while (mysql_stmt_fetch(stmt) == 0) {
+    result = mysql_request_f_result(conn, 
+        "SELECT id, first_name, second_name FROM worker",
+        MYSQL_BIND_UINT, MYSQL_BIND_STRING, MYSQL_BIND_STRING);
 
-        first_name[first_name_len] = '\0';
-        second_name[second_name_len] = '\0';
 
-        if ((tmp = create_worker(first_name, second_name)) != NULL) {
-            tmp->id = id;
-            push_queue_element(res, tmp);
+    if (get_requestf_code(result) != 0) {
+        free_requestf_result(result);
+        return NULL;
+    }
+
+    while (requestf_result_fetch(result,
+        &tmp.id, 
+        WORKER_FIRST_NAME_MAX_SIZE, tmp.first_name,
+        WORKER_SECOND_NAME_MAX_SIZE, tmp.second_name) == 0) {
+        
+        if ((new_worker = create_worker("", "")) != NULL) {
+            new_worker->id = tmp.id;
+            strcpy_s(new_worker->first_name, tmp.first_name, WORKER_FIRST_NAME_MAX_SIZE);
+            strcpy_s(new_worker->second_name, tmp.second_name, WORKER_SECOND_NAME_MAX_SIZE);
+            push_queue_element(res, new_worker);
         }
     }
 
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
-
     set_queue_element_free_function(res, &free_worker);
 
+    free_requestf_result(result);
     return res;
 }
 

@@ -28,13 +28,15 @@ typedef struct {
 /* ======================================== */
 /*         REQUESTF_RESULT FUNCTIONS        */
 /* ======================================== */
-void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *list);
-
-void requestf_result_init_result_binds(REQUESTF_RESULT *value, va_list *list);
-
 int requestf_result_fetch(REQUESTF_RESULT *value, ...);
 
+unsigned int get_requestf_code(REQUESTF_RESULT *value);
+
 REQUESTF_RESULT* create_requestf_result();
+
+size_t get_requestf_num_rows(REQUESTF_RESULT *value);
+
+size_t get_requestf_affected_rows(REQUESTF_RESULT *value);
 
 void free_requestf_result(REQUESTF_RESULT *value);
 

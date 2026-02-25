@@ -93,6 +93,10 @@ void requestf_result_init_result_binds(REQUESTF_RESULT *value, va_list *list) {
 
     value->result_binds_count = mysql_stmt_field_count(value->stmt);
 
+    if (value->result_binds_count == 0) {
+        return;
+    }
+
     value->result_is_null = (my_bool*) calloc(value->result_binds_count, sizeof(my_bool));
     value->result_binds = (MYSQL_BIND*) malloc(sizeof(MYSQL_BIND) * value->result_binds_count);
 
@@ -184,6 +188,38 @@ int requestf_result_fetch(REQUESTF_RESULT *value, ...) {
     return res;
 }
 
+unsigned int get_requestf_code(REQUESTF_RESULT *value) {
+    if (value == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS NULL\n");
+        return 1;
+    }
+    return value->code;
+}
+
+size_t get_requestf_num_rows(REQUESTF_RESULT *value) {
+    if (value == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS NULL\n");
+        return 0;
+    }
+    if (value->stmt == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS INVALIDE\n");
+        return 0;
+    }
+    return mysql_stmt_num_rows(value->stmt);
+}
+
+size_t get_requestf_affected_rows(REQUESTF_RESULT *value) {
+    if (value == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS NULL\n");
+        return 0;
+    }
+    if (value->stmt == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS INVALIDE\n");
+        return 0;
+    }
+    return mysql_stmt_affected_rows(value->stmt);
+}
+
 REQUESTF_RESULT* create_requestf_result() {
     REQUESTF_RESULT *res;
 
@@ -201,6 +237,7 @@ REQUESTF_RESULT* create_requestf_result() {
     res->prop_binds_count = 0;
 
     res->query = NULL;
+    res->code = 1;
 
     return res;
 }
@@ -523,6 +560,7 @@ REQUESTF_RESULT* mysql_request_f_result(MYSQL *conn, const char *query, ...) {
     }
 
     result->result_stored = 1;
+    result->code = 0;
     return result;
 }
 
