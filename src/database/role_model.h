@@ -44,6 +44,8 @@ void set_role_name(RoleModel *role, const char *value);
 /* ================================ */
 const char* get_role_name(const RoleModel *role);
 
+unsigned int get_role_id(const RoleModel *role);
+
 /* ================================ */
 /*                                  */
 /*        RoleModel functions       */
