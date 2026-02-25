@@ -28,11 +28,13 @@ typedef struct {
 /* ======================================== */
 /*         REQUESTF_RESULT FUNCTIONS        */
 /* ======================================== */
+REQUESTF_RESULT* create_requestf_result();
+
 int requestf_result_fetch(REQUESTF_RESULT *value, ...);
 
 unsigned int get_requestf_code(REQUESTF_RESULT *value);
 
-REQUESTF_RESULT* create_requestf_result();
+unsigned int get_requestf_insert_id(REQUESTF_RESULT *value);
 
 size_t get_requestf_num_rows(REQUESTF_RESULT *value);
 

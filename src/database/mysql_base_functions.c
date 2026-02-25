@@ -207,6 +207,18 @@ size_t get_requestf_num_rows(REQUESTF_RESULT *value) {
     }
     return mysql_stmt_num_rows(value->stmt);
 }
+unsigned int get_requestf_insert_id(REQUESTF_RESULT *value) {
+    if (value == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS NULL\n");
+        return 0;
+    }
+    if (value->stmt == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS INVALIDE\n");
+        return 0;
+    }
+    return mysql_stmt_insert_id(value->stmt);
+}
+
 
 size_t get_requestf_affected_rows(REQUESTF_RESULT *value) {
     if (value == NULL) {
