@@ -446,6 +446,8 @@ Queue* select_workers(MYSQL *conn) {
     WorkerModel tmp, *new_worker;
     Queue *res;
 
+    memset(&tmp, 0, sizeof(WorkerModel));
+
     if ((res = create_queue()) == NULL) {
         return NULL;
     }
@@ -453,7 +455,6 @@ Queue* select_workers(MYSQL *conn) {
     result = mysql_request_f_result(conn, 
         "SELECT id, first_name, second_name FROM worker",
         MYSQL_BIND_UINT, MYSQL_BIND_STRING, MYSQL_BIND_STRING);
-
 
     if (get_requestf_code(result) != 0) {
         free_requestf_result(result);
@@ -465,10 +466,7 @@ Queue* select_workers(MYSQL *conn) {
         WORKER_FIRST_NAME_MAX_SIZE, tmp.first_name,
         WORKER_SECOND_NAME_MAX_SIZE, tmp.second_name) == 0) {
         
-        if ((new_worker = create_worker("", "")) != NULL) {
-            new_worker->id = tmp.id;
-            strcpy_s(new_worker->first_name, tmp.first_name, WORKER_FIRST_NAME_MAX_SIZE);
-            strcpy_s(new_worker->second_name, tmp.second_name, WORKER_SECOND_NAME_MAX_SIZE);
+        if ((new_worker = create_worker_copy(&tmp)) != NULL) {
             push_queue_element(res, new_worker);
         }
     }

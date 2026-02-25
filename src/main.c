@@ -15,7 +15,6 @@ int main() {
     conn = mysql_create_connection("127.0.0.1", 3306, "test", "app_user", "strong_password");
     
     queue = select_workers(conn);
-    printf("REQUEST DONE\n");
 
     for(it = get_queue_iterator(queue); 
         !queue_iterator_is_end(it);
