@@ -1,3 +1,5 @@
 *.o
+*.do
+*.db
 main
 /.history
