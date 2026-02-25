@@ -7,9 +7,6 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
     char *query_c, *res_query_c;
     int counter, i;
 
-    /* free memory if REQUESTF_RESULT is already filled */
-    free_requestf_result(value);
-
     /* counting params in query string */
     counter = 0;
     for (query_c = query; *query_c != '\0'; query_c++) {
@@ -91,17 +88,25 @@ void requestf_result_init_result_binds(REQUESTF_RESULT *value, va_list *list) {
     int i;
     MYSQL_RBIND_TYPE field_type;
 
+    if (value == NULL || value->stmt == NULL) {
+        value->result_binds = NULL;
+        return; 
+    }
+
     value->result_binds_count = mysql_stmt_field_count(value->stmt);
 
     if (value->result_binds_count == 0) {
+        value->result_binds = NULL;
         return;
     }
-
+    
     value->result_is_null = (my_bool*) calloc(value->result_binds_count, sizeof(my_bool));
-    value->result_binds = (MYSQL_BIND*) malloc(sizeof(MYSQL_BIND) * value->result_binds_count);
+    value->result_binds = (MYSQL_BIND*) calloc(value->result_binds_count, sizeof(MYSQL_BIND));
 
-    memset(value->result_binds, 0, sizeof(MYSQL_BIND) * value->result_binds_count);
-
+    if (value->result_is_null == NULL) {
+        fprintf(stderr, "Error while memory allocation for result_is_null\n");
+        exit(EXIT_FAILURE);
+    }
     if (value->result_binds == NULL) {
         fprintf(stderr, "Error while memory allocation for result binds\n");
         exit(EXIT_FAILURE);
@@ -233,7 +238,7 @@ size_t get_requestf_affected_rows(REQUESTF_RESULT *value) {
 }
 
 REQUESTF_RESULT* create_requestf_result() {
-    REQUESTF_RESULT *res;
+    REQUESTF_RESULT *res = NULL;
 
     if ((res = (REQUESTF_RESULT*) malloc(sizeof(REQUESTF_RESULT))) == NULL) {
         fprintf(stderr, "Error while memory allocation\n");
@@ -257,6 +262,11 @@ REQUESTF_RESULT* create_requestf_result() {
 void free_requestf_result(REQUESTF_RESULT *value) {
     int i;
 
+    if (value == NULL) {
+        fprintf(stderr, "REQUESTF_RESULT IS NULL\n");
+        return;
+    }
+
     if (value->result_stored == 1) {
         mysql_stmt_free_result(value->stmt);
     }
@@ -270,7 +280,7 @@ void free_requestf_result(REQUESTF_RESULT *value) {
         free(value->result_binds[i].buffer);
 
         switch (value->result_binds[i].buffer_type) {
-            case MYSQL_BIND_STRING:
+            case MYSQL_TYPE_STRING:
                 free(value->result_binds[i].length);
                 break;
             default:
@@ -295,6 +305,8 @@ void free_requestf_result(REQUESTF_RESULT *value) {
         free(value->query);
         value->query = NULL;
     }
+
+    free(value);
 }
 
 
@@ -510,7 +522,7 @@ int mysql_request_f(MYSQL *conn, MYSQL_STMT **stmt, MYSQL_BIND *res_bind, const 
 
 REQUESTF_RESULT* mysql_request_f_result(MYSQL *conn, const char *query, ...) {
     va_list parameters;
-    REQUESTF_RESULT *result;
+    REQUESTF_RESULT *result = NULL;
 
     result = create_requestf_result();
 
@@ -558,7 +570,6 @@ REQUESTF_RESULT* mysql_request_f_result(MYSQL *conn, const char *query, ...) {
         fprintf(stderr, "mysql_stmt_bind_result() failed: %s\n", mysql_stmt_error(result->stmt));
         result->code =  1;
 
-        
         va_end(parameters);
         return result;
     }

@@ -17,24 +17,25 @@ DOBJ=$(DSRC:.c=.do)
 all: $(TARGET)
 
 check: $(DTARGET)
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes  $(DTARGET)
+	valgrind --show-leak-kinds=all $(DTARGET)
 
-$(TARGET): $(OBJ)
+$(TARGET): $(OBJ) main.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 $(DTARGET) : $(DOBJ) $(OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ -g $^ $(LDFLAGS)
 
-main.o: main.c
-	$(CC) -c $< $(CFLAGS) -o $@
+
 %.o: %.c
 	$(CC) -c $< $(CFLAGS) -o $@
 %.do: %.c
 	$(CC) -c $< $(CFLAGS) -o $@
 
+main.o: main.c database/worker_model.h
+	$(CC) -c $< $(CFLAGS) -o $@
 
-main.o : database/worker_model.h
+debug.do : debug/role_model_debug.h debug/debug_setup.h
 
-debug.do : debug/role_model_debug.h 
+
 
 database/worker_model.o : database/worker_model.h utils.h database/queue.h database/mysql_base_functions.h database/role_model.h
 
