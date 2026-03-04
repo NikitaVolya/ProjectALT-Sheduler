@@ -91,6 +91,12 @@ LineModel* select_line_by_id(MYSQL *conn, unsigned int id);
 
 LineModel* include_line_roles(MYSQL *conn, LineModel *line);
 
+LineModel* refresh_line(MYSQL *conn, LineModel **line);
+
+LineModel* update_line(MYSQL *conn, LineModel *line);
+
+LineModel* delete_line(MYSQL *conn, LineModel *line);
+
 /* ====================================== */
 /*                                        */
 /*        QUEUE DATABASE FUNCTIONS        */

@@ -312,6 +312,90 @@ LineModel* include_line_roles(MYSQL *conn, LineModel *line) {
     return line;
 }
 
+LineModel* refresh_line(MYSQL *conn, LineModel **line) {
+    LineModel *res;
+
+    if (line == NULL || *line == NULL) {
+        fprintf(stderr, "Error : line is NULL\n");
+        return NULL;
+    }
+
+    if ((*line)->id == 0 || 
+        (res = select_line_by_id(conn, (*line)->id )) == NULL) {
+        fprintf(stderr, "Error : line is not exists in data base\n");
+        return NULL;
+    }
+
+    if ((*line)->roles_included) {
+        include_line_roles(conn, res);
+    }
+
+    free_line(*line);
+    *line = res;
+    return res;
+}
+
+
+LineModel* update_line(MYSQL *conn, LineModel *line) {
+    REQUESTF_RESULT *request_result;
+
+    if (line == NULL || line->id == 0) {
+        fprintf(stderr, "Error : line is NULL or not exists in data base\n");
+        return NULL;
+    }
+
+    request_result = mysql_request_f_result(conn,
+        "UPDATE line "
+        "SET name=%s, product=%s "
+        "WHERE id=%ui ", line->name, line->product_name, &line->id);
+    
+    if (get_requestf_code(request_result) != 0) {
+        free_requestf_result(request_result);
+        return NULL;
+    }
+
+    line->is_changed = 0;
+
+    free_requestf_result(request_result);
+    return line;
+}
+
+LineModel* delete_line(MYSQL *conn, LineModel *line) {
+    REQUESTF_RESULT *request_result;
+
+    if (line == NULL) {
+        fprintf(stderr, "Error : line is NULL\n");
+        return NULL;
+    }
+
+    request_result = mysql_request_f_result(conn,
+        "DELETE FROM line WHERE id = %ui ", &line->id);
+    
+    if (get_requestf_code(request_result) != 0) {
+        return NULL;
+    }
+
+    if (get_requestf_affected_rows(request_result) == 0) {
+        fprintf(stderr, "LineModel is not deleted\n");
+    } else {
+
+        line->id = 0;
+        line->is_changed = 0;
+        
+        if (line->roles_included) {
+            line->roles_included = 0;
+            if (line->roles != NULL) {
+                free(line->roles);
+                line->roles = NULL;
+            }
+            line->roles_count = 0;
+        }
+    }
+
+    free_requestf_result(request_result);
+    return line;
+}
+
 /* ====================================== */
 /*                                        */
 /*        QUEUE DATABASE FUNCTIONS        */
