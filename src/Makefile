@@ -16,7 +16,7 @@ DOBJ=$(DSRC:.c=.do)
 
 all: $(TARGET)
 
-check: $(DTARGET)
+check_db: $(DTARGET)
 	valgrind --show-leak-kinds=all $(DTARGET)
 
 $(TARGET): $(OBJ) main.o
@@ -33,7 +33,7 @@ $(DTARGET) : $(DOBJ) $(OBJ)
 main.o: main.c database/worker_model.h
 	$(CC) -c $< $(CFLAGS) -o $@
 
-debug.do : debug/role_model_debug.h debug/debug_setup.h
+debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h
 
 
 
@@ -44,4 +44,4 @@ database/role_model.o : database/role_model.h
 database/line_model.o : database/line_model.h
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(OBJ) $(TARGET) $(DOBJ) $(DTARGET)
