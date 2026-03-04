@@ -1,6 +1,7 @@
 
 #include "debug/role_model_debug.h"
 #include "debug/worker_model_debug.h"
+#include "debug/line_model_debug.h"
 
 
 int main() {
@@ -16,6 +17,9 @@ int main() {
 
     run_role_tests(conn);
     
+    printf(LINE_TEXT);
+
+    run_line_tests(conn);
     
     printf(LINE_TEXT);
     

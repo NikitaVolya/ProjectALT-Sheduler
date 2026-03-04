@@ -33,7 +33,7 @@ $(DTARGET) : $(DOBJ) $(OBJ)
 main.o: main.c database/worker_model.h
 	$(CC) -c $< $(CFLAGS) -o $@
 
-debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h
+debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h
 
 
 
