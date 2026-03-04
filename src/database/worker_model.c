@@ -420,9 +420,64 @@ WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role)
     if (get_requestf_code(request_result) == 1062) {
         fprintf(stderr, "WorkerModel already have this role\n");
         free_requestf_result(request_result);
-        return *worker;
+        return NULL;
     } else if (get_requestf_code(request_result) != 0) {
         fprintf(stderr, "Error while worker role inserting\n");
+        free_requestf_result(request_result);
+        return NULL;
+    }
+
+    if ((*worker)->roles_included) {
+        refresh_worker(conn, worker);
+    }
+
+    free_requestf_result(request_result);
+    return *worker;
+}
+
+WorkerModel* remove_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role) {
+    REQUESTF_RESULT *request_result;
+
+    if (worker == NULL || *worker == NULL) {
+        fprintf(stderr, "WorkerModel is NULL\n");
+        return NULL;
+    }
+
+    if (role == NULL) {
+        fprintf(stderr, "RoleModel is NULL\n");
+        return NULL;
+    }
+
+    if ((*worker)->id == 0) {
+        fprintf(stderr, "WorkerModel is not exist in data base\n");
+        return NULL;
+    }
+    if (role->id == 0) {
+        fprintf(stderr, "RoleModel is not exist in data base\n");
+        return NULL;
+    }
+
+    if ((*worker)->is_changed) {
+        fprintf(stderr, "Befor adding new role to worker\nNeed to update or refresh WorkerModel\n");
+        return NULL;
+    }
+
+    if (role->is_changed) {
+        fprintf(stderr, "Befor adding new role to worker\nNeed to update or refresh RoleModel\n");
+        return NULL;
+    }
+
+    request_result = mysql_request_f_result(conn,
+        "DELETE FROM worker_role "
+        "WHERE worker_id=%ui AND role_id=%ui",  &(*worker)->id, &role->id);
+    
+    if (get_requestf_code(request_result) != 0) {
+        fprintf(stderr, "Error while worker RoleModel removing from WorkerModel\n");
+        free_requestf_result(request_result);
+        return NULL;
+    }
+    if (get_requestf_affected_rows(request_result) == 0) {
+        fprintf(stderr, "RoleModel is not removed from WorkerModel\n");
         free_requestf_result(request_result);
         return NULL;
     }
@@ -454,6 +509,57 @@ Queue* select_workers(MYSQL *conn) {
 
     result = mysql_request_f_result(conn, 
         "SELECT id, first_name, second_name FROM worker",
+        MYSQL_BIND_UINT, MYSQL_BIND_STRING, MYSQL_BIND_STRING);
+
+    if (get_requestf_code(result) != 0) {
+        free_requestf_result(result);
+        return NULL;
+    }
+
+    while (requestf_result_fetch(result,
+        &tmp.id, 
+        WORKER_FIRST_NAME_MAX_SIZE, tmp.first_name,
+        WORKER_SECOND_NAME_MAX_SIZE, tmp.second_name) == 0) {
+        
+        if ((new_worker = create_worker_copy(&tmp)) != NULL) {
+            push_queue_element(res, new_worker);
+        }
+    }
+
+    set_queue_element_free_function(res, &free_worker);
+
+    free_requestf_result(result);
+    return res;
+}
+
+Queue* select_workers_by_role(MYSQL *conn, RoleModel *role) {
+
+    REQUESTF_RESULT *result;
+
+    WorkerModel tmp, *new_worker;
+    Queue *res;
+
+    memset(&tmp, 0, sizeof(WorkerModel));
+
+    if (role == NULL) {
+        fprintf(stderr, "RoleModel is NULL\n");
+        return NULL;
+    }
+
+    if (role->id == 0) {
+        fprintf(stderr, "RoleModel is not exist in data base\n");
+        return NULL;
+    }
+
+    if ((res = create_queue()) == NULL) {
+        return NULL;
+    }
+
+    result = mysql_request_f_result(conn, 
+        "SELECT worker.id, worker.first_name, worker.second_name "
+        "FROM worker, worker_role "
+        "WHERE worker_role.worker_id = worker.id "
+        "AND worker_role.role_id = %ui", &role->id,
         MYSQL_BIND_UINT, MYSQL_BIND_STRING, MYSQL_BIND_STRING);
 
     if (get_requestf_code(result) != 0) {

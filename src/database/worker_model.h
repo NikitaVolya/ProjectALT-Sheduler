@@ -96,12 +96,16 @@ WorkerModel* delete_worker(MYSQL *conn, WorkerModel *worker);
 
 WorkerModel* add_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role);
 
+WorkerModel* remove_worker_role(MYSQL *conn, WorkerModel **worker, RoleModel *role);
+
 /* ====================================== */
 /*                                        */
 /*        QUEUE DATABASE FUNCTIONS        */
 /*                                        */
 /* ====================================== */
 Queue* select_workers(MYSQL *conn);
+
+Queue* select_workers_by_role(MYSQL *conn, RoleModel *role);
 
 Queue* refresh_workers(MYSQL *conn, Queue *workers);
 

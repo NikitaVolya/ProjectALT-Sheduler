@@ -129,19 +129,57 @@ void run_worker_tests(MYSQL *conn) {
 
     role = create_role("Developer");
     add_role(conn, role);
+    
+    include_worker_roles(conn, worker);
 
     if (add_worker_role(conn, &worker, role) == NULL) {
         printf("Error\n");
         exit(EXIT_FAILURE);
     }
 
-    include_worker_roles(conn, worker);
-
     if (get_worker_roles_count(worker) == 0) {
-        printf("Error\nRole not included\n");
+        printf("Error\nRole not added\n");
         exit(EXIT_FAILURE);
     }
 
+    printf("OK\n");
+
+    
+    /* -------- select_workers_by_role -------- */
+
+    printf(TEXT_PADDING "select_workers_by_role: - ");
+
+    queue = select_workers_by_role(conn, role);
+
+    if (queue == NULL) {
+        fprintf(stderr, "Error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (get_queue_size(queue) != 1) {
+        free_queue(queue);
+        fprintf(stderr, "Error, queue size is unexpected\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    printf("OK\n");
+
+    free_queue(queue);
+
+    /* -------- remove_worker_role -------- */
+    
+    printf(TEXT_PADDING "remove_worker_role:  - ");
+
+    if (remove_worker_role(conn, &worker, role) == NULL) {
+        printf("Error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (get_worker_roles_count(worker) != 0) {
+        printf("Error\nRole not removed\n");
+        exit(EXIT_FAILURE);
+    }
+    
     printf("OK\n");
 
     /* -------- delete_worker -------- */
@@ -164,9 +202,7 @@ void run_worker_tests(MYSQL *conn) {
     delete_role(conn, role);
     free_role(role);
 
-    /* ================= QUEUE TESTS ================= */
-
-    printf("\n" HEADER_PADDING "START WorkerModel QUEUE DATABASE FUNCTIONS TEST:\n");
+    /* -------- select_workers -------- */
 
     printf(TEXT_PADDING "select_workers:      - ");
 
@@ -179,6 +215,8 @@ void run_worker_tests(MYSQL *conn) {
     printf("OK\n");
 
     free_queue(queue);
+    
+    /* ================= WorkerModel SUMMARY ================= */
 
     printf("\n" HEADER_PADDING "WorkerModel SUMMARY:    - OK\n");
 }
