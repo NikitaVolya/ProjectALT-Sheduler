@@ -444,3 +444,47 @@ Queue* select_lines(MYSQL *conn) {
 
     return res;
 }
+
+Queue* refresh_lines(MYSQL *conn, Queue *lines) {
+    LineModel *line;
+    size_t i = get_queue_size(lines);
+
+    while (i > 0) {
+        i--;
+
+        line = pop_queue_element(lines);
+
+        if (refresh_line(conn, &line) == NULL) {
+            free_line(line);
+        } else {
+            push_queue_element(lines, line);
+        }
+
+    }
+    return lines;
+}
+
+Queue* update_lines(MYSQL *conn, Queue *lines) {
+    LineModel *line;
+    size_t i = get_queue_size(lines);
+
+    while (i > 0) {
+        i--;
+
+        line = pop_queue_element(lines);
+
+        update_line(conn, line);
+
+        push_queue_element(lines, line);
+    }
+    return lines;
+}
+
+void delete_lines(MYSQL *conn, Queue *lines) {
+    LineModel *line;
+
+    while ((line = pop_queue_element(lines)) != NULL) {
+        delete_worker(conn, line);
+        free_worker(line);
+    }
+}

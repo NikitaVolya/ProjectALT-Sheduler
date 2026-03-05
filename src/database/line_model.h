@@ -104,4 +104,10 @@ LineModel* delete_line(MYSQL *conn, LineModel *line);
 /* ====================================== */
 Queue* select_lines(MYSQL *conn);
 
+Queue* refresh_lines(MYSQL *conn, Queue *lines);
+
+Queue* update_lines(MYSQL *conn, Queue *lines);
+
+void delete_workers(MYSQL *conn, Queue *lines);
+
 #endif /* _LINE_MODEL_H_ */
