@@ -484,7 +484,7 @@ void delete_lines(MYSQL *conn, Queue *lines) {
     LineModel *line;
 
     while ((line = pop_queue_element(lines)) != NULL) {
-        delete_worker(conn, line);
-        free_worker(line);
+        delete_line(conn, line);
+        free_line(line);
     }
 }
