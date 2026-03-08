@@ -29,7 +29,7 @@ $(DTARGET) : $(DOBJ) $(filter-out main.o, $(OBJ))
 	$(CC) -c $< $(CFLAGS) -o $@
 
 
-debug/debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h debug/worker_work_day_model_debug.h
+debug/debug.o : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h debug/worker_work_day_model_debug.h database/work_time_list.h
 
 database/worker_model.o : database/worker_model.h utils.h database/queue.h database/mysql_base_functions.h database/role_model.h
 
@@ -37,7 +37,9 @@ database/role_model.o : database/role_model.h
 
 database/line_model.o : database/line_model.h
 
-database/worker_work_day_model.o : database/worker_work_day_model.h database/worker_model.h database/line_model.h
+database/worker_work_day_model.o : database/worker_work_day_model.h database/worker_model.h database/line_model.h database/work_time_list.h
+
+database/work_time_list.o :  database/work_time_list.h
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(DOBJ) $(DTARGET)

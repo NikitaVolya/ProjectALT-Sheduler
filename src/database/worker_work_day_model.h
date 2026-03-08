@@ -3,6 +3,7 @@
 
 #include "worker_model.h"
 #include "line_model.h"
+#include "work_time_list.h"
 #include "queue.h"
 
 
@@ -16,7 +17,7 @@ typedef struct {
     unsigned int line_id;
     LineModel *line;
 
-    short is_changed;
+    WorkTimeList* work_time_list;
 } WorkerWorkDayModel;
 
 
@@ -34,6 +35,8 @@ MYSQL_TIME get_worker_work_date(WorkerWorkDayModel *wwd);
 WorkerModel* get_worker_work_day_worker(WorkerWorkDayModel *wwd);
 
 LineModel* get_worker_work_day_line(WorkerWorkDayModel *wwd);
+
+WorkTimeList* get_worker_work_day_work_time(WorkerWorkDayModel *wwd);
 
 
 /* ================================ */
@@ -63,6 +66,8 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id);
 WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd);
 
 WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd);
+
+WorkerWorkDayModel* include_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd);
 
 
 #endif /* _WORKER_WORK_DAY_H_ */

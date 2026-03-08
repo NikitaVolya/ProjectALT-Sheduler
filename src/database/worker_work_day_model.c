@@ -37,6 +37,11 @@ LineModel* get_worker_work_day_line(WorkerWorkDayModel *wwd) {
     return wwd->line;
 }
 
+WorkTimeList* get_worker_work_day_work_time(WorkerWorkDayModel *wwd) {
+    check_worker_work_day_on_null("get_worker_work_day_work_time", wwd);
+    return wwd->work_time_list;
+}
+
 /* ================================ */
 /*                                  */
 /*        RoleModel functions       */
@@ -84,6 +89,9 @@ void free_worker_work_day(void *value) {
         free_line(wwd->line);
     if (wwd->worker != NULL)
         free_worker(wwd->worker);
+    if (wwd->work_time_list != NULL)
+        free_work_time_list(wwd->work_time_list);
+
     free(wwd);
 }
 
@@ -103,6 +111,7 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
 
     res->worker = NULL;
     res->line = NULL;
+    res->work_time_list = NULL;
 
     request_result = mysql_request_f_result(conn, 
         "SELECT wd.week_id, wwdd.worker_id, wwdd.line_id, wwd.date "
@@ -136,6 +145,9 @@ WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
     if (wwd->id == 0)
         return NULL;
 
+    if (wwd->worker != NULL)
+        free_worker(wwd->worker);
+
     if ((wwd->worker = select_worker_by_id(conn, wwd->worker_id)) == NULL) {
         fprintf(stderr, "Error while including worker in WorkerWorkDayModel\n");
         return NULL;
@@ -149,9 +161,26 @@ WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
 
     if (wwd->id == 0)
         return NULL;
+    
+    if (wwd->line != NULL)
+        free_worker(wwd->line);
 
     if ((wwd->line = select_line_by_id(conn, wwd->line_id)) == NULL) {
         fprintf(stderr, "Error while including line in WorkerWorkDayModel\n");
+        return NULL;
+    }
+
+    return wwd;
+}
+
+
+WorkerWorkDayModel* include_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd) {
+    check_worker_work_day_on_null("include_work_time_list", wwd);
+
+    if (wwd->id == 0)
+        return NULL;
+
+    if ((wwd->work_time_list = select_work_time(conn, wwd->id)) == NULL) {
         return NULL;
     }
 

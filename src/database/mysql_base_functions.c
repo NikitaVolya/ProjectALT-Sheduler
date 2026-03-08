@@ -38,8 +38,10 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
 
     /* parsing params */
     /* %s => string */
-    /* %ui => unsigned int */
     /* %d => short */
+    /* %dt => date */
+    /* %t => time */
+    /* %ui => unsigned int */
     for (query_c = query; *query_c != '\0'; query_c++) {
 
         if (*query_c == '%') {
@@ -56,6 +58,11 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
             }
             /* date param */
             else if (query_c[1] == 'd' && query_c[2] == 't') {
+                mysql_set_date_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
+                query_c = query_c + 2;
+            }
+            /* time param */
+            else if (query_c[1] == 't') {
                 mysql_set_date_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
                 query_c = query_c + 2;
             }
@@ -147,6 +154,10 @@ void requestf_result_init_result_binds(REQUESTF_RESULT *value, va_list *list) {
             value->result_binds[i].buffer_type = MYSQL_TYPE_DATE;
             value->result_binds[i].buffer = malloc(sizeof(MYSQL_TIME));
             break;
+        case MYSQL_BIND_TIME:
+            value->result_binds[i].buffer_type = MYSQL_TYPE_TIME;
+            value->result_binds[i].buffer = malloc(sizeof(MYSQL_TIME));     
+            break;
         default:
             fprintf(stderr, "Error invalide result bind\n");
             exit(EXIT_FAILURE);
@@ -187,6 +198,10 @@ int requestf_result_fetch(REQUESTF_RESULT *value, ...) {
                     break;
                 case MYSQL_TYPE_SHORT:
                     *((short *) va_arg(parameters, short*)) = *((short *) buffer);
+                    break;
+                case MYSQL_TYPE_DATE:
+                case MYSQL_TYPE_TIME:
+                    *((MYSQL_TIME *) va_arg(parameters, MYSQL_TIME*)) = *((MYSQL_TIME *) buffer);
                     break;
                 default:
                     break;
@@ -288,6 +303,7 @@ void free_requestf_result(REQUESTF_RESULT *value) {
     for (i = 0; i < value->result_binds_count; i++) {
         free(value->result_binds[i].buffer);
 
+        /* Free binds additional memory */
         switch (value->result_binds[i].buffer_type) {
             case MYSQL_TYPE_STRING:
                 free(value->result_binds[i].length);
@@ -353,6 +369,14 @@ void mysql_set_date_result_bind(MYSQL_BIND *bind, MYSQL_TIME *date) {
     bind[0].buffer = date;
 }
 
+void mysql_set_time_result_bind(MYSQL_BIND *bind, MYSQL_TIME *time) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    
+    bind[0].buffer_type = MYSQL_TYPE_TIME;
+    bind[0].buffer = time;
+    bind[0].buffer_length = sizeof(*time);
+}
 
 /* =========================== */
 /*          PROPS BINDS        */
@@ -386,6 +410,14 @@ void mysql_set_date_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *date) {
 
     bind[0].buffer_type = MYSQL_TYPE_DATE;
     bind[0].buffer = date;
+}
+
+void mysql_set_time_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *time) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    bind[0].buffer_type = MYSQL_TYPE_TIME;
+    bind[0].buffer = time;
+    bind[0].buffer_length  = sizeof(*time);
 }
 
 

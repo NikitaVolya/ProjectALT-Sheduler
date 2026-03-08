@@ -14,7 +14,8 @@ typedef enum {
     MYSQL_BIND_STRING,
     MYSQL_BIND_UINT,
     MYSQL_BIND_SHORT,
-    MYSQL_BIND_DATE
+    MYSQL_BIND_DATE,
+    MYSQL_BIND_TIME
 } MYSQL_RBIND_TYPE;
 
 typedef struct {

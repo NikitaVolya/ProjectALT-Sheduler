@@ -20,33 +20,43 @@ void run_worker_work_day_tests(MYSQL *conn) {
 
     wwd = select_worker_work_day_by_id(conn, 7);
     if (wwd == NULL) {
-        printf("Error\nReturned NULL\n");
-        free_worker_work_day(wwd);
+        printf("Error\n" TEXT_PADDING "Returned NULL\n");
         exit(EXIT_FAILURE);
     }
 
     printf("OK\n");
 
-    /* -------- include_worker --------*/
-    printf(TEXT_PADDING "include_worker: - ");
+    /* -------- include_worker -------- */
+    printf(TEXT_PADDING "include_worker:               - ");
 
     if (include_worker(conn, wwd) == NULL) {
         printf("Error\n");
+        exit(EXIT_FAILURE);
     }
     printf("Ok\n");
 
-    /* -------- include_line --------*/
-    printf(TEXT_PADDING "include_line: - ");
+    /* -------- include_line -------- */
+    printf(TEXT_PADDING "include_line:                 - ");
 
     if (include_line(conn, wwd) == NULL) {
         printf("Error\n");
+        exit(EXIT_FAILURE);
     }
-    printf("Ok\n");
+    printf("OK\n");
+    
+    /* -------- include_work_time_list -------- */
+    printf(TEXT_PADDING "include_work_time_list:       - ");
+    
+    if (include_work_time_list(conn, wwd) == NULL) {
+        printf("Error\n");
+        exit(EXIT_FAILURE);
+    }
 
-    printf("\n");
-    include_worker_roles(conn, wwd->worker);
-    include_line_roles(conn, wwd->line);
-    print_worker_work_day(wwd);
+    if (get_work_time_list_count(get_worker_work_day_work_time(wwd)) == 0) {
+        printf("Error\n" TEXT_PADDING "unexpected result\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("OK\n");
     
     free_worker_work_day(wwd);
 }
