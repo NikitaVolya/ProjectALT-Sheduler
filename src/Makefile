@@ -9,32 +9,27 @@ LDFLAGS=-L$(SDL_DIR)/lib -lSDL2-2.0 -Wl,-rpath,'$$ORIGIN/SDL2/lib' -L$(MARIADB_D
 
 TARGET=main
 DTARGET=debug.db
-SRC=utils.c database/queue.c database/worker_model.c database/role_model.c database/mysql_base_functions.c database/line_model.c database/worker_work_day_model.c
-DSRC=debug.c
+SRC=$(wildcard *.c) $(wildcard database/*.c)
+DSRC=$(wildcard debug/*.c)
 OBJ=$(SRC:.c=.o)
-DOBJ=$(DSRC:.c=.do)
+DOBJ=$(DSRC:.c=.o)
 
 all: $(TARGET)
 
 check_db: $(DTARGET)
 	valgrind --show-leak-kinds=all $(DTARGET)
 
-$(TARGET): $(OBJ) main.o
+$(TARGET): $(OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
-$(DTARGET) : $(DOBJ) $(OBJ)
+$(DTARGET) : $(DOBJ) $(filter-out main.o, $(OBJ)) 
 	$(CC) -o $@ -g $^ $(LDFLAGS)
 
 
 %.o: %.c
 	$(CC) -c $< $(CFLAGS) -o $@
-%.do: %.c
-	$(CC) -c $< $(CFLAGS) -o $@
 
-main.o: main.c database/worker_model.h
-	$(CC) -c $< $(CFLAGS) -o $@
 
-debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h debug/worker_work_day_model_debug.h
-
+debug/debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h debug/worker_work_day_model_debug.h
 
 database/worker_model.o : database/worker_model.h utils.h database/queue.h database/mysql_base_functions.h database/role_model.h
 
@@ -42,7 +37,7 @@ database/role_model.o : database/role_model.h
 
 database/line_model.o : database/line_model.h
 
-database/worker_work_day_model.o : database/worker_work_day_model.h database/worker_model.h database/worker_work_day_model.h
+database/worker_work_day_model.o : database/worker_work_day_model.h database/worker_model.h database/line_model.h
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(DOBJ) $(DTARGET)

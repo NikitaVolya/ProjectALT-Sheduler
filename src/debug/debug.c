@@ -1,8 +1,8 @@
 
-#include "debug/worker_work_day_model_debug.h"
-#include "debug/role_model_debug.h"
-#include "debug/worker_model_debug.h"
-#include "debug/line_model_debug.h"
+#include "worker_work_day_model_debug.h"
+#include "role_model_debug.h"
+#include "worker_model_debug.h"
+#include "line_model_debug.h"
 
 
 int main() {

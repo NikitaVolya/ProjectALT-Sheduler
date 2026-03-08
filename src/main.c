@@ -11,7 +11,7 @@ int main() {
 
     conn = mysql_create_connection("127.0.0.1", 3306, "test", "app_user", "strong_password");
     
-    
+    printf("MAIN.C\n");
 
     mysql_close(conn);
     
