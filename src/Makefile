@@ -9,7 +9,7 @@ LDFLAGS=-L$(SDL_DIR)/lib -lSDL2-2.0 -Wl,-rpath,'$$ORIGIN/SDL2/lib' -L$(MARIADB_D
 
 TARGET=main
 DTARGET=debug.db
-SRC=utils.c database/queue.c database/worker_model.c database/role_model.c database/mysql_base_functions.c database/line_model.c
+SRC=utils.c database/queue.c database/worker_model.c database/role_model.c database/mysql_base_functions.c database/line_model.c database/worker_work_day_model.c
 DSRC=debug.c
 OBJ=$(SRC:.c=.o)
 DOBJ=$(DSRC:.c=.do)
@@ -33,8 +33,7 @@ $(DTARGET) : $(DOBJ) $(OBJ)
 main.o: main.c database/worker_model.h
 	$(CC) -c $< $(CFLAGS) -o $@
 
-debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h
-
+debug.do : debug/role_model_debug.h debug/worker_model_debug.h debug/debug_setup.h debug/line_model_debug.h debug/worker_work_day_model_debug.h
 
 
 database/worker_model.o : database/worker_model.h utils.h database/queue.h database/mysql_base_functions.h database/role_model.h
@@ -42,6 +41,8 @@ database/worker_model.o : database/worker_model.h utils.h database/queue.h datab
 database/role_model.o : database/role_model.h
 
 database/line_model.o : database/line_model.h
+
+database/worker_work_day_model.o : database/worker_work_day_model.h database/worker_model.h database/worker_work_day_model.h
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(DOBJ) $(DTARGET)

@@ -13,7 +13,8 @@ typedef enum {
     MYSQL_BIND_NONE = 0,
     MYSQL_BIND_STRING,
     MYSQL_BIND_UINT,
-    MYSQL_BIND_SHORT
+    MYSQL_BIND_SHORT,
+    MYSQL_BIND_DATE
 } MYSQL_RBIND_TYPE;
 
 typedef struct {
@@ -51,6 +52,8 @@ void mysql_set_string_result_bind(MYSQL_BIND *bind, char *s, unsigned long buffe
 
 void mysql_set_short_result_bind(MYSQL_BIND *bind, short *value);
 
+void mysql_set_date_result_bind(MYSQL_BIND *bind, MYSQL_TIME *date);
+
 /* =========================== */
 /*          PROPS BINDS        */
 /* =========================== */
@@ -59,6 +62,8 @@ void mysql_set_string_prop_bind(MYSQL_BIND *bind, char *s);
 void mysql_set_uint_prop_bind(MYSQL_BIND *bind, unsigned int *value);
 
 void mysql_set_short_prop_bind(MYSQL_BIND *bind, short *value);
+
+void mysql_set_date_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *date);
 
 /* =========================== */
 /*            REAQUESTS        */

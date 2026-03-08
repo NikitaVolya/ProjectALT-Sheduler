@@ -54,6 +54,11 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
                 mysql_set_short_prop_bind(value->prop_binds + i, (short*) va_arg(*list, short*));
                 query_c++;
             }
+            /* date param */
+            else if (query_c[1] == 'd' && query_c[2] == 't') {
+                mysql_set_date_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
+                query_c = query_c + 2;
+            }
             /* unsigned int param */
             else if (query_c[1] == 'u' && query_c[2] == 'i') {
                 mysql_set_uint_prop_bind(value->prop_binds + i, (unsigned int*) va_arg(*list, unsigned int*));
@@ -137,6 +142,10 @@ void requestf_result_init_result_binds(REQUESTF_RESULT *value, va_list *list) {
             value->result_binds[i].buffer_type = MYSQL_TYPE_SHORT;
             value->result_binds[i].is_unsigned = 0;
             value->result_binds[i].buffer = malloc(sizeof(short));
+            break;
+        case MYSQL_BIND_DATE:
+            value->result_binds[i].buffer_type = MYSQL_TYPE_DATE;
+            value->result_binds[i].buffer = malloc(sizeof(MYSQL_TIME));
             break;
         default:
             fprintf(stderr, "Error invalide result bind\n");
@@ -337,6 +346,13 @@ void mysql_set_short_result_bind(MYSQL_BIND *bind, short *value) {
     bind[0].is_unsigned = 0;
 }
 
+void mysql_set_date_result_bind(MYSQL_BIND *bind, MYSQL_TIME *date) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    bind[0].buffer_type = MYSQL_TYPE_DATE;
+    bind[0].buffer = date;
+}
+
 
 /* =========================== */
 /*          PROPS BINDS        */
@@ -363,6 +379,13 @@ void mysql_set_short_prop_bind(MYSQL_BIND *bind, short *value) {
     bind[0].buffer_type = MYSQL_TYPE_SHORT;
     bind[0].buffer = value;
     bind[0].is_unsigned = 0;
+}
+
+void mysql_set_date_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *date) {
+    memset(bind, 0, sizeof(MYSQL_BIND));
+
+    bind[0].buffer_type = MYSQL_TYPE_DATE;
+    bind[0].buffer = date;
 }
 
 
