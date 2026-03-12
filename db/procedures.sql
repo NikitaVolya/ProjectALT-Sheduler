@@ -226,7 +226,8 @@ CREATE PROCEDURE p_create_worker_work_week_day (
      IN in_work_week_id INT UNSIGNED,
      IN in_date DATE,
      IN in_worker_id INT UNSIGNED,
-     IN in_line_id INT UNSIGNED
+     IN in_line_id INT UNSIGNED,
+     IN in_role_id INT UNSIGNED
 )
 BEGIN
         DECLARE v_check INT UNSIGNED;
@@ -272,8 +273,8 @@ BEGIN
 
         CALL p_create_work_week_day(in_work_week_id, in_date, v_work_day_id);
 
-        INSERT INTO worker_work_week_day(work_week_day_id, worker_id, line_id)
-        VALUES (v_work_day_id, in_worker_id, in_line_id)
+        INSERT INTO worker_work_week_day(work_week_day_id, worker_id, line_id, role_id)
+        VALUES (v_work_day_id, in_worker_id, in_line_id, in_role_id)
         ;
 END;
 $
@@ -339,7 +340,9 @@ $
 DELIMITER ;
 
 
-
+/*
+Inserting time into the working day with overlapping time
+*/
 DROP PROCEDURE IF EXISTS p_insert_work_time;
 DELIMITER $
 CREATE PROCEDURE p_insert_work_time(
@@ -452,7 +455,6 @@ END;
 
 $
 DELIMITER ;
-
 
 
 DROP PROCEDURE IF EXISTS p_generate_line_work_time_chunk;
@@ -713,7 +715,6 @@ BEGIN
 
                         /* Skip if already full */
                         IF v_chunk_workers_number >= v_max_workers_number THEN
-                        
                            SELECT CONCAT('Chunk ',
                                          CAST(v_start_time AS CHAR),
                                          ' -> ',
@@ -737,7 +738,8 @@ BEGIN
                                     v_work_week_id,
                                     in_date,
                                     v_worker_id,
-                                    in_id_line
+                                    in_id_line,
+                                    in_role_id
                                );
                                SET v_worker_work_week_day_id = LAST_INSERT_ID();
                            END;

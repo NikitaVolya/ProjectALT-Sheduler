@@ -110,6 +110,7 @@ CREATE TABLE worker_work_week_day(
        work_week_day_id INT UNSIGNED NOT NULL,
        worker_id INT UNSIGNED NOT NULL,
        line_id INT UNSIGNED NOT NULL,
+       role_id INT UNSIGNED NOT NULL,
        PRIMARY KEY (work_week_day_id, worker_id),
        CONSTRAINT wwwd_fk_work_week_day_id
        FOREIGN KEY (work_week_day_id) REFERENCES work_week_day(work_day_id)
@@ -117,6 +118,8 @@ CREATE TABLE worker_work_week_day(
        CONSTRAINT wwwd_fk_worker_id FOREIGN KEY (worker_id) REFERENCES worker(id)
        ON DELETE CASCADE,
        CONSTRAINT wwwd_fk_line_id FOREIGN KEY (line_id) REFERENCES line(id)
+       ON DELETE CASCADE,
+       CONSTRAINT wwwd_fk_role_id FOREIGN KEY (role_id) REFERENCES role(id)
        ON DELETE CASCADE
 );
 
