@@ -16,14 +16,6 @@ typedef struct {
 
 /* ================================ */
 /*                                  */
-/*  WorkerWorkDayModel functions    */
-/*                                  */
-/* ================================ */
-WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id);
-
-
-/* ================================ */
-/*                                  */
 /*   WorkerWorkDayModel Getters     */
 /*                                  */
 /* ================================ */
@@ -40,6 +32,16 @@ size_t get_work_time_list_count(WorkTimeList *work_time_list);
 /*                                  */
 /* ================================ */
 void free_work_time_list(void *value);
+
+
+/* ================================ */
+/*                                  */
+/*  WorkerWorkDayModel functions    */
+/*                                  */
+/* ================================ */
+WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id);
+
+WorkTimeList* insert_work_time(MYSQL *conn, WorkTimeList *work_time_list, MYSQL_TIME start_time, MYSQL_TIME end_time);
 
 
 #endif /* _WORK_TIME_LIST_H_ */

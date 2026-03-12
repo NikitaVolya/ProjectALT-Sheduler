@@ -3,6 +3,58 @@
 
 /* ================================ */
 /*                                  */
+/*   WorkerWorkDayModel Getters     */
+/*                                  */
+/* ================================ */
+inline void check_on_null(const char *fname, WorkTimeList *work_time_list) {
+    if (work_time_list == NULL) {
+        fprintf(stderr, "Error while executing %s: WorkTimeList is NULL\n", fname);
+        exit(EXIT_FAILURE);
+    }
+}
+
+inline void check_index_on_outofbounds(const char *fname, size_t index, size_t count) {
+    if (index >= count) {
+        fprintf(stderr, "Error while executing %s: index out of range\n", fname);
+        exit(EXIT_FAILURE);
+    }
+}
+
+MYSQL_TIME get_work_time_list_start_time(WorkTimeList *work_time_list, size_t index) {
+    check_on_null("get_work_time_list_start_time", work_time_list);
+    check_index_on_outofbounds("get_work_time_list_start_time", index, work_time_list->count);
+    return work_time_list->start_times[index];
+}
+
+MYSQL_TIME get_work_time_list_end_time(WorkTimeList *work_time_list, size_t index)  {
+    check_on_null("get_work_time_list_end_time", work_time_list);
+    check_index_on_outofbounds("get_work_time_list_end_time", index, work_time_list->count);
+    return work_time_list->end_times[index];
+}
+
+size_t get_work_time_list_count(WorkTimeList *work_time_list) {
+    check_on_null("get_work_time_list_count", work_time_list);
+    return work_time_list->count;
+}
+
+/* ================================ */
+/*                                  */
+/*  WorkerWorkDayModel Destructor   */
+/*                                  */
+/* ================================ */
+void free_work_time_list(void *value) {
+    WorkTimeList *work_time_list;
+
+    if (value != NULL) {
+        work_time_list = (WorkTimeList*) value;
+        free(work_time_list->start_times);
+        free(work_time_list->end_times);
+        free(work_time_list);
+    }
+}
+
+/* ================================ */
+/*                                  */
 /*  WorkerWorkDayModel functions    */
 /*                                  */
 /* ================================ */
@@ -68,54 +120,29 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     return res;
 }
 
-/* ================================ */
-/*                                  */
-/*   WorkerWorkDayModel Getters     */
-/*                                  */
-/* ================================ */
-inline void check_on_null(const char *fname, WorkTimeList *work_time_list) {
-    if (work_time_list == NULL) {
-        fprintf(stderr, "Error while executing %s: WorkTimeList is NULL\n", fname);
-        exit(EXIT_FAILURE);
+WorkTimeList* insert_work_time(MYSQL *conn, WorkTimeList *work_time_list, MYSQL_TIME start_time, MYSQL_TIME end_time) {
+    WorkTimeList *res;
+    REQUESTF_RESULT *result;
+    unsigned int id;
+
+    check_on_null(work_time_list);
+    id = work_time_list->work_day_id;
+    if (id == 0)
+        return NULL;
+
+    result = mysql_request_f_result(conn,
+        "INSERT INTO work_time(work_day_id, start_time, end_time) "
+        "VALUES (%ui, %t, %t) ", 
+        &id, &start_time, &end_time
+    );
+
+    if (get_requestf_code(result) != 0) {
+        free_requestf_result(result);
+        return NULL:
     }
-}
 
-inline void check_index_on_outofbounds(const char *fname, size_t index, size_t count) {
-    if (index >= count) {
-        fprintf(stderr, "Error while executing %s: index out of range\n", fname);
-        exit(EXIT_FAILURE);
-    }
-}
+    free_work_time_list(work_time_list);
+    work_time_list = select_work_time(conn, id);
 
-MYSQL_TIME get_work_time_list_start_time(WorkTimeList *work_time_list, size_t index) {
-    check_on_null("get_work_time_list_start_time", work_time_list);
-    check_index_on_outofbounds("get_work_time_list_start_time", index, work_time_list->count);
-    return work_time_list->start_times[index];
-}
-
-MYSQL_TIME get_work_time_list_end_time(WorkTimeList *work_time_list, size_t index)  {
-    check_on_null("get_work_time_list_end_time", work_time_list);
-    check_index_on_outofbounds("get_work_time_list_end_time", index, work_time_list->count);
-    return work_time_list->end_times[index];
-}
-
-size_t get_work_time_list_count(WorkTimeList *work_time_list) {
-    check_on_null("get_work_time_list_count", work_time_list);
-    return work_time_list->count;
-}
-
-/* ================================ */
-/*                                  */
-/*  WorkerWorkDayModel Destructor   */
-/*                                  */
-/* ================================ */
-void free_work_time_list(void *value) {
-    WorkTimeList *work_time_list;
-
-    if (value != NULL) {
-        work_time_list = (WorkTimeList*) value;
-        free(work_time_list->start_times);
-        free(work_time_list->end_times);
-        free(work_time_list);
-    }
+    return work_time_list;
 }

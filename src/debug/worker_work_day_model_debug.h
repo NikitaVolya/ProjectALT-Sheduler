@@ -7,6 +7,7 @@
 
 void run_worker_work_day_tests(MYSQL *conn) {
     WorkerWorkDayModel *wwd;
+    MYSQL_TIME start, end;
 
     if (conn == NULL) {
         printf("Test is impossible because conn is NULL\n");
@@ -57,6 +58,7 @@ void run_worker_work_day_tests(MYSQL *conn) {
         exit(EXIT_FAILURE);
     }
     printf("OK\n");
+
     
     free_worker_work_day(wwd);
 }
