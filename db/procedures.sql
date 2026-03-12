@@ -614,7 +614,7 @@ BEGIN
                            LEAVE l_time;
                         END IF;
 
-                        /* Insert workers who:
+                        /* Insert workers into queue who:
                            - have required role
                            - are available in this chunk
                         */
@@ -659,21 +659,10 @@ BEGIN
                 DECLARE v_start_time TIME;
                 DECLARE v_worker_work_week_day_id INT UNSIGNED;
                 DECLARE v_continue BOOLEAN DEFAULT TRUE;
-                
-                DECLARE v_max_workers_number INT UNSIGNED;
-                DECLARE v_chunk_workers_number INT UNSIGNED;
 
                 DECLARE CONTINUE HANDLER
                 FOR NOT FOUND
                 SET v_continue = FALSE
-                ;
-
-                /* Get max workers allowed for this role */
-                SELECT lr.count
-                INTO v_max_workers_number
-                FROM line_role AS lr
-                WHERE lr.line_id = in_id_line
-                AND lr.role_id = in_role_id
                 ;
 
                 l_workers_queue: LOOP
@@ -702,19 +691,8 @@ BEGIN
                         WHERE start_time = v_start_time
                         ;
 
-                        /* Check if chunk already full */
-                        SELECT COUNT(*)
-                        INTO v_chunk_workers_number
-                        FROM worker_work_week_day AS wwwd,
-                             work_time AS wt
-                        WHERE wwwd.work_week_day_id = wt.work_day_id
-                        AND wwwd.line_id = in_id_line
-                        AND (v_start_time BETWEEN wt.start_time AND wt.start_time)
-                        AND (v_end_time BETWEEN wt.start_time AND wt.end_time)
-                        ;
-
                         /* Skip if already full */
-                        IF v_chunk_workers_number >= v_max_workers_number THEN
+                        IF f_is_enough_workers(v_line_work_week_day_id, in_role_id, v_start_time, v_end_time) THEN
                            SELECT CONCAT('Chunk ',
                                          CAST(v_start_time AS CHAR),
                                          ' -> ',

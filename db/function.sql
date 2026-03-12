@@ -72,7 +72,7 @@ DROP FUNCTION IF EXISTS f_is_enough_workers;
 
 DELIMITER $
 CREATE FUNCTION f_is_enough_workers(
-       in_line_id INT UNSIGNED,
+       in_line_work_week_day_id INT UNSIGNED,
        in_role_id INT UNSIGNED,
        in_start_time TIME,
        in_end_time TIME
@@ -80,24 +80,51 @@ CREATE FUNCTION f_is_enough_workers(
 RETURNS BOOLEAN
 READS SQL DATA
 BEGIN
-        DECLARE v_worker_count INT UNSIGNED;
+        DECLARE v_line_id INT UNSIGNED;
+        DECLARE v_max_role_count INT UNSIGNED;
         DECLARE v_role_count INT UNSIGNED;
 
-        SET v_worker_count = (SELECT COUNT(wwwd.id)
-           FROM worker_work_week_day AS wwwd, work_time AS wt, worker_role AS wr
-           WHERE wwwd.work_week_day_id = wt.work_day_id
-           AND wwwd.worker_id = wr.worker_id
-           AND wr.role_id = in_role_id
-           AND (in_start_time BETWEEN wt.start_time AND wt.end_time)
-           AND (in_end_time BETWEEN wt.start_time AND wt.end_time))
+
+        BEGIN
+                DECLARE EXIT HANDLER
+                FOR NOT FOUND
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'line_work_week_day not found'
+                ;
+
+                SELECT line_id
+                INTO v_line_id
+                FROM line_work_week_day
+                WHERE work_week_day_id = in_line_work_week_day_id
+                ;
+                
+        END;
+
+        BEGIN  
+                DECLARE EXIT HANDLER
+                FOR NOT FOUND
+                SET v_max_role_count = 0;
+
+                SELECT lr.count
+                INTO v_max_role_count
+                FROM line_role AS lr
+                WHERE lr.line_id = v_line_id
+                AND lr.role_id = in_role_id
+                ;
+        END;
+
+        SELECT COUNT(*)
+        INTO v_role_count
+        FROM worker_work_week_day AS wwwd,
+             work_time AS wt
+        WHERE wwwd.work_week_day_id = wt.work_day_id
+        AND wwwd.line_id = v_line_id
+        AND wwwd.role_id = in_role_id
+        AND (in_start_time BETWEEN wt.start_time AND wt.start_time)
+        AND (in_end_time BETWEEN wt.start_time AND wt.end_time)
         ;
 
-        SET v_role_count = (SELECT (count)
-            FROM line_role
-            WHERE line_id = in_line_id)
-        ;
-
-        RETURN v_worker_count = v_role_count;
+        RETURN v_max_role_count = v_role_count;
 END;
 $
 DELIMITER ;
