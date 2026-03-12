@@ -119,30 +119,3 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     free_requestf_result(result);
     return res;
 }
-
-WorkTimeList* insert_work_time(MYSQL *conn, WorkTimeList *work_time_list, MYSQL_TIME start_time, MYSQL_TIME end_time) {
-    WorkTimeList *res;
-    REQUESTF_RESULT *result;
-    unsigned int id;
-
-    check_on_null(work_time_list);
-    id = work_time_list->work_day_id;
-    if (id == 0)
-        return NULL;
-
-    result = mysql_request_f_result(conn,
-        "INSERT INTO work_time(work_day_id, start_time, end_time) "
-        "VALUES (%ui, %t, %t) ", 
-        &id, &start_time, &end_time
-    );
-
-    if (get_requestf_code(result) != 0) {
-        free_requestf_result(result);
-        return NULL:
-    }
-
-    free_work_time_list(work_time_list);
-    work_time_list = select_work_time(conn, id);
-
-    return work_time_list;
-}

@@ -41,7 +41,4 @@ void free_work_time_list(void *value);
 /* ================================ */
 WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id);
 
-WorkTimeList* insert_work_time(MYSQL *conn, WorkTimeList *work_time_list, MYSQL_TIME start_time, MYSQL_TIME end_time);
-
-
 #endif /* _WORK_TIME_LIST_H_ */
