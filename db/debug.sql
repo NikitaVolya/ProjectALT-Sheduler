@@ -43,10 +43,6 @@ CALL p_insert_work_time(3, "8:00:00", "15:45:00");
 CALL p_create_worker_work_default_day(6, 2);
 CALL p_insert_work_time(4, "08:00:00", "20:00:00");
 
-CALL p_create_worker_work_default_day(6, 3);
-CALL p_insert_work_time(5, "08:00:00", "13:00:00");
-CALL p_insert_work_time(5, "15:45:00", "20:00:00");
-
 
 CALL p_generate_day_work_time("2026-02-15");
 
@@ -61,3 +57,9 @@ SELECT *
 FROM line_work_week_day, work_time
 WHERE line_work_week_day.work_week_day_id = work_time.work_day_id
 ORDER BY start_time;
+
+
+CALL p_create_worker_work_default_day(6, 3);
+CALL p_insert_work_time(5, "08:00:00", "13:00:00");
+CALL p_insert_work_time(5, "15:45:00", "20:00:00");
+

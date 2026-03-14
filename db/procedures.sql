@@ -1,7 +1,36 @@
 
 
 DROP PROCEDURE IF EXISTS p_create_work_default_day;
-/* Creating default day for work in selected week and day */
+
+/*
+    Procedure: p_create_work_default_day
+
+    Description:
+        Creates a new default work day for a specific day of the week.
+
+        The procedure performs two steps:
+        1. Creates a record in the table `work_day`.
+        2. Creates a corresponding record in `work_default_day`
+           that links the created work_day with a day number.
+
+        If an error occurs while creating the default work day,
+        the previously created `work_day` record will be removed.
+
+    Parameters:
+        IN  in_day_number
+            Number of the day in the week (for example 0–6).
+
+        OUT out_work_default_day_id
+            Returns the ID of the created work_day record.
+            Returns NULL if the procedure fails.
+
+    Error handling:
+        If any SQL exception occurs while creating `work_default_day`,
+        the procedure:
+            - deletes the previously created record from `work_day`
+            - raises a custom error message.
+*/
+
 DELIMITER $
 CREATE PROCEDURE p_create_work_default_day(
        IN in_day_number TINYINT UNSIGNED,
@@ -10,27 +39,38 @@ CREATE PROCEDURE p_create_work_default_day(
 BEGIN
         DECLARE v_check INT UNSIGNED;
 
+        /* 
+           Error handler:
+           If any SQL error occurs during the procedure execution,
+           remove the created work_day record to avoid orphan data.
+        */
         DECLARE EXIT HANDLER
         FOR SQLEXCEPTION
-        BEGIN
+        BEGIN   
+                /* Rollback created work_day record */
                 DELETE FROM work_day
                 WHERE work_day.id = out_work_default_day_id
                 ;
 
+                /* message */
                 SIGNAL SQLSTATE '45000'
                 SET MESSAGE_TEXT = 'Error while creating work_default_day.'
                 ;
         END
         ;       
 
+        /* Default output value (in case creation fails) */
         SET out_work_default_day_id = NULL;       
 
+        /* Create base work_day record */
         INSERT INTO work_day(week_id)
         VALUES (NULL)
         ;
 
+        /* Save generated ID */
         SET out_work_default_day_id = LAST_INSERT_ID();
 
+        /* Create default day linked to the created work_day */
         INSERT INTO work_default_day(work_day_id, day_number)
         VALUES (out_work_default_day_id, in_day_number)
         ;
@@ -42,7 +82,43 @@ DELIMITER ;
 
 
 DROP PROCEDURE IF EXISTS p_create_work_week_day;
-/* Creating work day for selected weak */
+/*
+    Procedure: p_create_work_week_day
+
+    Description:
+        Creates a work day for a specific week.
+
+        The procedure:
+        1. Checks if the specified work_week exists.
+        2. Verifies that the provided date belongs to that week.
+        3. Creates a record in `work_day`.
+        4. Creates a corresponding record in `work_week_day`
+           that links the work_day with the given date.
+
+        If an error occurs while creating `work_week_day`,
+        the previously created `work_day` record will be removed.
+
+    Parameters:
+        IN in_work_week_id
+            ID of the work_week in which the work day should be created.
+
+        IN in_date
+            Date of the work day.
+
+        OUT out_work_week_day_id
+            Returns the ID of the created `work_day` record.
+            Returns NULL if the work day was not created.
+
+    Errors:
+        - 'work_week is not exists.'
+            Raised if the provided work_week_id does not exist.
+
+        - 'work_week_day date is not on work_week.'
+            Raised if the provided date does not belong to the specified week.
+
+        - 'Error while creating work_week_day.'
+            Raised if an SQL error occurs during insertion.
+*/
 DELIMITER $
 CREATE PROCEDURE p_create_work_week_day(
      IN in_work_week_id INT UNSIGNED,
@@ -52,8 +128,13 @@ CREATE PROCEDURE p_create_work_week_day(
 BEGIN
         DECLARE v_week_start_date DATE;
         
+        /* Default return value */
         SET out_work_week_day_id = NULL;
 
+        /* 
+           Check that the work_week exists
+           and retrieve the start date of the week
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR NOT FOUND
@@ -68,6 +149,10 @@ BEGIN
                 ;
         END;
 
+        /*
+           Validate that the given date belongs to the selected week.
+           The date must be between week_start_date and week_start_date + 6 days.
+        */
         IF in_date < v_week_start_date OR
            TIMESTAMPDIFF(DAY, v_week_start_date, in_date) > 6 THEN
            SIGNAL SQLSTATE '45000'
@@ -75,10 +160,15 @@ BEGIN
            ;
         END IF;
         
+         /*
+           Create the work day and corresponding work_week_day record.
+           If an error occurs, remove the created work_day record.
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR SQLEXCEPTION
                 BEGIN
+                        /* Rollback created work_day */
                         DELETE FROM work_day
                         WHERE work_day.id = out_work_week_day_id
                         ;
@@ -89,12 +179,15 @@ BEGIN
                 END
                 ;
 
+                /* Create work_day */
                 INSERT INTO work_day(week_id)
                 VALUES (in_work_week_id)
                 ;
 
+                /* Save generated ID */
                 SET out_work_week_day_id = LAST_INSERT_ID();
 
+                 /* Link date to created work_day */
                 INSERT INTO work_week_day(work_day_id, date)
                 VALUES (out_work_week_day_id, in_date)
                 ;
@@ -106,6 +199,35 @@ DELIMITER ;
 
 
 DROP PROCEDURE IF EXISTS p_create_worker_work_default_day;
+/*
+    Procedure: p_create_worker_work_default_day
+
+    Description:
+        Creates a default work day for a specific worker.
+
+        The procedure:
+        1. Verifies that the worker exists.
+        2. Checks that the worker does not already have a default work day
+           for the specified day of the week.
+        3. Creates a default work day using p_create_work_default_day.
+        4. Links the created default work day with the worker.
+
+    Parameters:
+        IN in_day_number
+            Number of the day in the week (for example 1–7).
+
+        IN in_worker_id
+            ID of the worker for whom the default work day will be created.
+
+    Errors:
+        - 'worker does not exist.'
+            Raised if the specified worker is not found.
+
+        - 'worker_work_default_day already exists for this worker in this day.'
+            Raised if the worker already has a default work day
+            for the given day of the week.
+*/
+
 DELIMITER $
 CREATE PROCEDURE p_create_worker_work_default_day (
      IN in_day_number TINYINT UNSIGNED,
@@ -115,6 +237,10 @@ BEGIN
         DECLARE v_check INT UNSIGNED;
         DECLARE v_work_day_id INT UNSIGNED;
 
+        /*
+            Check that the worker exists.
+            If no record is found, raise an error.
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR NOT FOUND
@@ -129,6 +255,10 @@ BEGIN
                 ;
         END;
 
+        /*
+            Check if a default work day already exists
+            for this worker on the specified day of the week.
+        */
         BEGIN
                 DECLARE CONTINUE HANDLER
                 FOR NOT FOUND
@@ -144,6 +274,7 @@ BEGIN
                 AND wdd.day_number = in_day_number
                 ;
 
+                /* Prevent duplicate default days for the same worker */
                 IF v_check IS NOT NULL THEN
                    SIGNAL SQLSTATE '45000'
                    SET MESSAGE_TEXT = 'worker_work_default_day already exists for this worker in this day.'
@@ -151,8 +282,10 @@ BEGIN
                 END IF;
         END;
 
+        /* Create default work day */
         CALL p_create_work_default_day(in_day_number, v_work_day_id);
 
+        /* Link created default work day to the worker */
         INSERT INTO worker_work_default_day(work_default_day_id, worker_id)
         VALUES (v_work_day_id, in_worker_id)
         ;
@@ -161,8 +294,35 @@ $
 DELIMITER ;
 
 
-
 DROP PROCEDURE IF EXISTS p_create_line_work_default_day;
+/*
+    Procedure: p_create_line_work_default_day
+
+    Description:
+        Creates a default work day for a specific production line.
+
+        The procedure:
+        1. Verifies that the line exists.
+        2. Checks that the line does not already have a default work day
+           for the specified day of the week.
+        3. Creates a default work day using p_create_work_default_day.
+        4. Links the created default work day with the line.
+
+    Parameters:
+        IN in_day_number
+            Number of the day in the week (for example 1–7).
+
+        IN in_line_id
+            ID of the line for which the default work day will be created.
+
+    Errors:
+        - 'line does not exist.'
+            Raised if the specified line is not found.
+
+        - 'line_work_default_day already exists for this line in this day.'
+            Raised if the line already has a default work day
+            for the given day of the week.
+*/
 DELIMITER $
 CREATE PROCEDURE p_create_line_work_default_day (
      IN in_day_number TINYINT UNSIGNED,
@@ -172,7 +332,10 @@ BEGIN
         DECLARE v_check INT UNSIGNED;
         DECLARE v_work_day_id INT UNSIGNED;
 
-        /* Check on worker existing */
+        /*
+            Check that the line exists.
+            If no record is found, raise an error.
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR NOT FOUND
@@ -187,12 +350,15 @@ BEGIN
                 ;
         END;
 
+        /*
+            Check if a default work day already exists
+            for this line on the specified day of the week.
+        */
         BEGIN
                 DECLARE CONTINUE HANDLER
                 FOR NOT FOUND
                 SET v_check = NULL;
                 
-                /* check on existing of default work day in same day for same line */
                 SELECT wd.id
                 INTO v_check
                 FROM work_day AS wd, work_default_day AS wdd, line_work_default_day AS lwdd
@@ -202,6 +368,7 @@ BEGIN
                 AND wdd.day_number = in_day_number
                 ;
 
+                /* Prevent duplicate default days for the same line */
                 IF v_check IS NOT NULL THEN
                    SIGNAL SQLSTATE '45000'
                    SET MESSAGE_TEXT = 'worker_work_default_day already exists for this line in this day.'
@@ -209,8 +376,10 @@ BEGIN
                 END IF;
         END;
 
+        /* Create default work day */
         CALL p_create_work_default_day(in_day_number, v_work_day_id);
 
+        /* Link created default work day to the line */
         INSERT INTO line_work_default_day(work_default_day_id, line_id)
         VALUES (v_work_day_id, in_line_id)
         ;
@@ -218,9 +387,44 @@ END;
 $
 DELIMITER ;
 
-
-
 DROP PROCEDURE IF EXISTS p_create_worker_work_week_day;
+/*
+    Procedure: p_create_worker_work_week_day
+
+    Description:
+        Creates a scheduled work day for a worker within a specific work week.
+
+        The procedure:
+        1. Verifies that the worker exists.
+        2. Checks that the worker does not already have a work assignment
+           on the same line for the specified date within the given week.
+        3. Creates a work week day using p_create_work_week_day.
+        4. Links the created work day with the worker, line, and role.
+
+    Parameters:
+        IN in_work_week_id
+            ID of the work week in which the work day will be created.
+
+        IN in_date
+            Date of the work day.
+
+        IN in_worker_id
+            ID of the worker assigned to the work day.
+
+        IN in_line_id
+            ID of the production line where the worker will work.
+
+        IN in_role_id
+            ID of the role the worker will perform on that line.
+
+    Errors:
+        - 'worker does not exist.'
+            Raised if the specified worker is not found.
+
+        - 'worker_work_week_day already exists for this worker on this line in this date.'
+            Raised if the worker already has a work assignment
+            on the same line and date within the specified week.
+*/
 DELIMITER $
 CREATE PROCEDURE p_create_worker_work_week_day (
      IN in_work_week_id INT UNSIGNED,
@@ -233,6 +437,10 @@ BEGIN
         DECLARE v_check INT UNSIGNED;
         DECLARE v_work_day_id INT UNSIGNED;
 
+        /*
+            Check that the worker exists.
+            If the worker is not found, raise an error.
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR NOT FOUND
@@ -247,12 +455,15 @@ BEGIN
                 ;
         END;
 
+        /*
+            Check if a work assignment already exists
+            for the same worker, line, and date in this week.
+        */
         BEGIN
                 DECLARE CONTINUE HANDLER
                 FOR NOT FOUND
                 SET v_check = NULL;
                 
-                /* check on existing of week work day in same date for same worker */
                 SELECT wd.id
                 INTO v_check
                 FROM work_day AS wd, work_week_day AS wwd, worker_work_week_day AS wwwd
@@ -264,6 +475,7 @@ BEGIN
                 AND wwd.date = in_date
                 ;
 
+                /* Prevent duplicate assignments */
                 IF v_check IS NOT NULL THEN
                    SIGNAL SQLSTATE '45000'
                    SET MESSAGE_TEXT = 'worker_work_week_day already exists for this worker on this line in this date.'
@@ -271,8 +483,10 @@ BEGIN
                 END IF;
         END;
 
+        /* Create work week day */
         CALL p_create_work_week_day(in_work_week_id, in_date, v_work_day_id);
 
+        /* Assign worker to the created work day */
         INSERT INTO worker_work_week_day(work_week_day_id, worker_id, line_id, role_id)
         VALUES (v_work_day_id, in_worker_id, in_line_id, in_role_id)
         ;
@@ -283,6 +497,38 @@ DELIMITER ;
 
 
 DROP PROCEDURE IF EXISTS p_create_line_work_week_day;
+
+/*
+    Procedure: p_create_line_work_week_day
+
+    Description:
+        Creates a scheduled work day for a production line within a specific work week.
+
+        The procedure:
+        1. Verifies that the line exists.
+        2. Checks that the line does not already have a work day
+           for the specified date within the given week.
+        3. Creates the work week day using p_create_work_week_day.
+        4. Links the created work day with the specified line.
+
+    Parameters:
+        IN in_work_week_id
+            ID of the work week in which the work day will be created.
+
+        IN in_date
+            Date of the work day.
+
+        IN in_line_id
+            ID of the production line assigned to the work day.
+
+    Errors:
+        - 'line does not exist.'
+            Raised if the specified line is not found.
+
+        - 'line_work_week_day already exists for this line in this date.'
+            Raised if the line already has a work assignment
+            for the specified date in the selected week.
+*/
 DELIMITER $
 CREATE PROCEDURE p_create_line_work_week_day (
      IN in_work_week_id INT UNSIGNED,
@@ -293,6 +539,10 @@ BEGIN
         DECLARE v_check INT UNSIGNED;
         DECLARE v_work_day_id INT UNSIGNED;
 
+        /*
+            Check that the line exists.
+            If the line is not found, raise an error.
+        */
         BEGIN
                 DECLARE EXIT HANDLER
                 FOR NOT FOUND
@@ -307,6 +557,10 @@ BEGIN
                 ;
         END;
 
+        /*
+            Check if a work assignment already exists
+            for the same line and date within the selected week.
+        */
         BEGIN
                 DECLARE CONTINUE HANDLER
                 FOR NOT FOUND
@@ -330,8 +584,10 @@ BEGIN
                 END IF;
         END;
 
+        /* Create work week day */
         CALL p_create_work_week_day(in_work_week_id, in_date, v_work_day_id);
 
+        /* Link created work day to the line */
         INSERT INTO line_work_week_day(work_week_day_id, line_id)
         VALUES (v_work_day_id, in_line_id)
         ;
