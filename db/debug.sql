@@ -55,10 +55,23 @@ CALL p_generate_day_work_time("2026-02-15");
 SELECT wwd.line_work_day_id, wwd.work_day_id, worker_id, line_id, role_id, start_time, end_time
 FROM worker_work_day AS wwd, work_time AS wt
 WHERE wwd.work_day_id = wt.work_day_id
-ORDER BY start_time
+ORDER BY work_day_id, start_time
 ;
 
 SELECT *
 FROM line_work_day, work_time
 WHERE line_work_day.work_day_id = work_time.work_day_id
-ORDER BY start_time;
+ORDER BY id, start_time;
+
+CALL p_remove_line_work_day_work_time(6, "11:00:00", "15:30:00");
+
+SELECT wwd.line_work_day_id, wwd.work_day_id, worker_id, line_id, role_id, start_time, end_time
+FROM worker_work_day AS wwd, work_time AS wt
+WHERE wwd.work_day_id = wt.work_day_id
+ORDER BY work_day_id, start_time
+;
+
+SELECT *
+FROM line_work_day, work_time
+WHERE line_work_day.work_day_id = work_time.work_day_id
+ORDER BY id, start_time;
