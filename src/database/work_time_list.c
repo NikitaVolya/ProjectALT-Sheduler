@@ -47,6 +47,7 @@ void free_work_time_list(void *value) {
 
     if (value != NULL) {
         work_time_list = (WorkTimeList*) value;
+        free(work_time_list->work_time_ids);
         free(work_time_list->start_times);
         free(work_time_list->end_times);
         free(work_time_list);
@@ -61,6 +62,7 @@ void free_work_time_list(void *value) {
 WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     WorkTimeList *res;
     REQUESTF_RESULT *result;
+    unsigned int id;
     MYSQL_TIME start_time, end_time;
     size_t i;
 
@@ -70,11 +72,11 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     }
 
     result = mysql_request_f_result(conn, 
-        "SELECT start_time, end_time "
+        "SELECT id, start_time, end_time "
         "FROM work_time "
         "WHERE work_day_id = %ui "
         "ORDER BY start_time ", &work_day_id,
-        MYSQL_BIND_TIME, MYSQL_BIND_TIME
+        MYSQL_BIND_UINT, MYSQL_BIND_TIME, MYSQL_BIND_TIME
     );
 
     if (get_requestf_code(result) != 0) {
@@ -84,6 +86,7 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     }
 
     res->work_day_id = work_day_id;
+    res->work_time_ids = NULL;
     res->start_times = NULL;
     res->end_times = NULL;
     res->count = get_requestf_num_rows(result);
@@ -93,9 +96,17 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
         return res;
     }
 
+    if ((res->work_time_ids = (unsigned int*) malloc(sizeof(unsigned int) * res->count)) == NULL) {
+        fprintf(stderr, "Error while memory allocation\n");
+        free_requestf_result(result);
+        free(res);
+        return NULL;
+    }
+
     if ((res->start_times = (MYSQL_TIME*) malloc(sizeof(MYSQL_TIME) * res->count)) == NULL) {
         fprintf(stderr, "Error while memory allocation\n");
         free_requestf_result(result);
+        free(res->work_time_ids);
         free(res);
         return NULL;
     }
@@ -103,6 +114,7 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
     if ((res->end_times = (MYSQL_TIME*) malloc(sizeof(MYSQL_TIME) * res->count)) == NULL) {
         fprintf(stderr, "Error while memory allocation\n");
         free_requestf_result(result);
+        free(res->work_time_ids);
         free(res->start_times);
         free(res);
         return NULL;
@@ -110,7 +122,8 @@ WorkTimeList* select_work_time(MYSQL *conn, unsigned int work_day_id) {
 
     i = 0;
 
-    while (requestf_result_fetch(result, &start_time, &end_time) == 0) {
+    while (requestf_result_fetch(result, &id, &start_time, &end_time) == 0) {
+        res->work_time_ids[i] = id;
         res->start_times[i] = start_time;
         res->end_times[i] = end_time;
         i++;

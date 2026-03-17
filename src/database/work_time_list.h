@@ -8,7 +8,7 @@
 #include "mysql_base_functions.h"
 
 typedef struct {
-    unsigned int work_day_id;
+    unsigned int work_day_id, *work_time_ids;
     MYSQL_TIME *start_times, *end_times;
     size_t count;
 } WorkTimeList;

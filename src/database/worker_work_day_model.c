@@ -114,9 +114,9 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
     res->work_time_list = NULL;
 
     request_result = mysql_request_f_result(conn, 
-        "SELECT wd.week_id, wwdd.worker_id, wwdd.line_id, wwd.date "
-        "FROM worker_work_week_day AS wwdd, work_week_day AS wwd, work_day AS wd "
-        "WHERE wwdd.work_week_day_id = wd.id AND wwd.work_day_id = wd.id AND wd.id = %ui ", &id,
+        "SELECT wd.week_id, wwd.worker_id, wwd.line_id, wd.date "
+        "FROM worker_work_day AS wwd, work_day AS wd "
+        "WHERE wwd.work_day_id = wd.id AND wd.id = %ui ", &id,
         MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_DATE);
 
     if (get_requestf_code(request_result) != 0) {
@@ -145,8 +145,10 @@ WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
     if (wwd->id == 0)
         return NULL;
 
-    if (wwd->worker != NULL)
+    if (wwd->worker != NULL) {
         free_worker(wwd->worker);
+        wwd->worker = NULL;
+    }
 
     if ((wwd->worker = select_worker_by_id(conn, wwd->worker_id)) == NULL) {
         fprintf(stderr, "Error while including worker in WorkerWorkDayModel\n");
@@ -162,8 +164,10 @@ WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
     if (wwd->id == 0)
         return NULL;
     
-    if (wwd->line != NULL)
-        free_worker(wwd->line);
+    if (wwd->line != NULL) {
+        free_line(wwd->line);
+        wwd->line = NULL;
+    }
 
     if ((wwd->line = select_line_by_id(conn, wwd->line_id)) == NULL) {
         fprintf(stderr, "Error while including line in WorkerWorkDayModel\n");

@@ -13,7 +13,7 @@ void run_worker_work_day_tests(MYSQL *conn) {
         exit(EXIT_FAILURE);
     }
 
-    printf("\n" HEADER_PADDING "START WorkerModel DATABASE FUNCTIONS TEST:\n");
+    printf("\n" HEADER_PADDING "START WorkerWorkDay DATABASE FUNCTIONS TEST:\n");
 
     /* -------- select_worker_work_day_by_id -------- */
     printf(TEXT_PADDING "select_worker_work_day_by_id: - ");

@@ -277,7 +277,7 @@ LineModel* include_line_roles(MYSQL *conn, LineModel *line) {
     mysql_set_short_prop_bind(res_bind + 2, &role_count);                                        // role_count
 
     if (mysql_request_f(conn, &stmt, res_bind, 
-            "SELECT r.id, r.name, line_role.count "
+            "SELECT r.id, r.name, line_role.worker_count "
             "FROM line_role, `role` AS r "
             "WHERE line_role.role_id = r.id "
             "AND line_role.line_id = %ui "
