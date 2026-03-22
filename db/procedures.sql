@@ -533,12 +533,12 @@ DROP PROCEDURE IF EXISTS p_create_line_work_day;
 */
 DELIMITER $
 CREATE PROCEDURE p_create_line_work_day (
-     IN in_work_week_id INT UNSIGNED,
      IN in_date DATE,
      IN in_line_id INT UNSIGNED
 )
 BEGIN
         DECLARE v_check INT UNSIGNED;
+        DECLARE v_work_week_id INT UNSIGNED;
         DECLARE v_work_day_id INT UNSIGNED;
 
         /*
@@ -559,6 +559,25 @@ BEGIN
                 ;
         END;
 
+        /* 
+            Find work week by id
+        */
+        BEGIN
+
+                DECLARE EXIT HANDLER
+                FOR NOT FOUND
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'work_week do not exists for input date.'
+                ;
+
+                SELECT work_week.id 
+                INTO v_work_week_id
+                FROM work_week
+                WHERE work_week.date = DATE_SUB(in_date, INTERVAL WEEKDAY(in_date) DAY)
+                ;
+
+        END;
+
         /*
             Check if a work assignment already exists
             for the same line and date within the selected week.
@@ -574,7 +593,7 @@ BEGIN
                 FROM work_day AS wd,
                      line_work_day AS lwd
                 WHERE lwd.work_day_id = wd.id
-                AND wd.week_id = in_work_week_id
+                AND wd.week_id = v_work_week_id
                 AND lwd.line_id = in_line_id
                 AND wd.date = in_date
                 ;
@@ -587,7 +606,7 @@ BEGIN
         END;
 
         /* Create work week day */
-        CALL p_create_work_day(in_work_week_id, in_date, v_work_day_id);
+        CALL p_create_work_day(v_work_week_id, in_date, v_work_day_id);
 
         /* Link created work day to the line */
         INSERT INTO line_work_day(work_day_id, line_id)
@@ -1164,7 +1183,7 @@ BEGIN
             DECLARE CONTINUE HANDLER
             FOR NOT FOUND
             BEGIN
-                CALL p_create_line_work_day(v_work_week_id, in_date, in_id_line);
+                CALL p_create_line_work_day(in_date, in_id_line);
                 SET v_line_work_day_id = LAST_INSERT_ID();
             END;
             
