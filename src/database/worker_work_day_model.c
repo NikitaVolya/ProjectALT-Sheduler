@@ -44,7 +44,7 @@ WorkTimeList* get_worker_work_day_work_time(WorkerWorkDayModel *wwd) {
 
 /* ================================ */
 /*                                  */
-/*        RoleModel functions       */
+/*  WorkerWorkDayModel functions    */
 /*                                  */
 /* ================================ */
 void fprint_worker_work_day(FILE *file, WorkerWorkDayModel *wwd) {
@@ -139,7 +139,7 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
     return res;
 }
 
-WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
+WorkerWorkDayModel* include_worker_work_day_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
     check_worker_work_day_on_null("include_worker", wwd);
 
     if (wwd->id == 0)
@@ -158,7 +158,7 @@ WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
     return wwd;
 }
 
-WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
+WorkerWorkDayModel* include_worker_work_day_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
     check_worker_work_day_on_null("include_line", wwd);
 
     if (wwd->id == 0)
@@ -178,7 +178,7 @@ WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
 }
 
 
-WorkerWorkDayModel* include_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd) {
+WorkerWorkDayModel* include_worker_work_line_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd) {
     check_worker_work_day_on_null("include_work_time_list", wwd);
 
     if (wwd->id == 0)

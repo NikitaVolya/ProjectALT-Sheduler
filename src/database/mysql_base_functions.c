@@ -51,15 +51,15 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
                 mysql_set_string_prop_bind(value->prop_binds + i, (char*) va_arg(*list, char*));
                 query_c++;
             } 
-            /* short param */
-            else if (query_c[1] == 'd') {
-                mysql_set_short_prop_bind(value->prop_binds + i, (short*) va_arg(*list, short*));
-                query_c++;
-            }
             /* date param */
             else if (query_c[1] == 'd' && query_c[2] == 't') {
                 mysql_set_date_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
                 query_c = query_c + 2;
+            }
+            /* short param */
+            else if (query_c[1] == 'd') {
+                mysql_set_short_prop_bind(value->prop_binds + i, (short*) va_arg(*list, short*));
+                query_c++;
             }
             /* time param */
             else if (query_c[1] == 't') {
@@ -462,6 +462,8 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
     /* parsing params */
     /* %s => string */
     /* %ui => unsigned int */
+    /* %dt => date */
+    /* %t => time */
     /* %d => short */
     for (query_c = query; *query_c != '\0'; query_c++) {
 
@@ -472,10 +474,20 @@ char* mysql_init_prop_binds(char *query, MYSQL_BIND **res_binds, va_list *list) 
                 mysql_set_string_prop_bind(*res_binds + i, (char*) va_arg(*list, char*));
                 query_c++;
             } 
+            /* %dt => date */
+            else if (query_c[1] == 'd' && query_c[2] == 't') {
+                mysql_set_date_prop_bind(*res_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
+                query_c = query_c + 2;
+            }
             /* short param */
             else if (query_c[1] == 'd') {
                 mysql_set_short_prop_bind(*res_binds + i, (short*) va_arg(*list, short*));
                 query_c++;
+            }
+            /* %t => time */
+            else if (query_c[1] == 't') {
+                mysql_set_time_prop_bind(*res_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
+                query_c = query_c + 2;
             }
             /* unsigned int param */
             else if (query_c[1] == 'u' && query_c[2] == 'i') {

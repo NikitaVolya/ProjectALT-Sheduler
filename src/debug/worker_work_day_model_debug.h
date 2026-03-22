@@ -29,7 +29,7 @@ void run_worker_work_day_tests(MYSQL *conn) {
     /* -------- include_worker -------- */
     printf(TEXT_PADDING "include_worker:               - ");
 
-    if (include_worker(conn, wwd) == NULL) {
+    if (include_worker_work_day_worker(conn, wwd) == NULL) {
         printf("Error\n");
         exit(EXIT_FAILURE);
     }
@@ -38,7 +38,7 @@ void run_worker_work_day_tests(MYSQL *conn) {
     /* -------- include_line -------- */
     printf(TEXT_PADDING "include_line:                 - ");
 
-    if (include_line(conn, wwd) == NULL) {
+    if (include_worker_work_day_line(conn, wwd) == NULL) {
         printf("Error\n");
         exit(EXIT_FAILURE);
     }
@@ -47,7 +47,7 @@ void run_worker_work_day_tests(MYSQL *conn) {
     /* -------- include_work_time_list -------- */
     printf(TEXT_PADDING "include_work_time_list:       - ");
     
-    if (include_work_time_list(conn, wwd) == NULL) {
+    if (include_worker_work_line_work_time_list(conn, wwd) == NULL) {
         printf("Error\n");
         exit(EXIT_FAILURE);
     }

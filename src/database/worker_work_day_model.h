@@ -63,11 +63,11 @@ void free_worker_work_day(void *wwd);
 /* ================================ */
 WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id);
 
-WorkerWorkDayModel* include_worker(MYSQL *conn, WorkerWorkDayModel *wwd);
+WorkerWorkDayModel* include_worker_work_day_worker(MYSQL *conn, WorkerWorkDayModel *wwd);
 
-WorkerWorkDayModel* include_line(MYSQL *conn, WorkerWorkDayModel *wwd);
+WorkerWorkDayModel* include_worker_work_day_line(MYSQL *conn, WorkerWorkDayModel *wwd);
 
-WorkerWorkDayModel* include_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd);
+WorkerWorkDayModel* include_worker_work_line_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd);
 
 
 #endif /* _WORKER_WORK_DAY_H_ */
