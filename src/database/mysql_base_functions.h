@@ -55,6 +55,8 @@ void mysql_set_short_result_bind(MYSQL_BIND *bind, short *value);
 
 void mysql_set_date_result_bind(MYSQL_BIND *bind, MYSQL_TIME *date);
 
+void mysql_set_time_result_bind(MYSQL_BIND *bind, MYSQL_TIME *time);
+
 /* =========================== */
 /*          PROPS BINDS        */
 /* =========================== */
@@ -65,6 +67,8 @@ void mysql_set_uint_prop_bind(MYSQL_BIND *bind, unsigned int *value);
 void mysql_set_short_prop_bind(MYSQL_BIND *bind, short *value);
 
 void mysql_set_date_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *date);
+
+void mysql_set_time_prop_bind(MYSQL_BIND *bind, MYSQL_TIME *time);
 
 /* =========================== */
 /*            REAQUESTS        */

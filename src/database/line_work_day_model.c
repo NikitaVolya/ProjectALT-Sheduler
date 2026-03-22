@@ -208,6 +208,70 @@ LineWorkDayModel* select_line_work_day_by_line_id_date(MYSQL *conn, unsigned int
     return res;
 }
 
+LineWorkDayModel* refresh_line_work_day(MYSQL *conn, LineWorkDayModel **lwd) {
+
+    if ((*lwd)->id == 0)
+        return NULL;
+
+    if ((*lwd)->line != NULL) {
+        include_line_work_day_line(conn, *lwd);
+    }
+
+    if ((*lwd)->work_time_list != NULL) {
+        include_line_work_day_work_time_list(conn, *lwd);
+    }
+    
+    return *lwd;
+}
+
+int delete_line_work_day(MYSQL *conn, LineWorkDayModel *lwd) {
+    REQUESTF_RESULT *request_result;
+
+    request_result = mysql_request_f_result(conn, "DELETE FROM work_day WHERE id = %ui ", &lwd->id);
+
+    if (get_requestf_code(request_result) == 0) {
+        free_requestf_result(request_result);
+        free_line_work_day(lwd);
+        return 0;
+    } else {
+        free_requestf_result(request_result);
+        return 1;
+    }
+    
+}
+
+LineWorkDayModel* add_line_work_day_work_time(MYSQL *conn, LineWorkDayModel *lwd, MYSQL_TIME start, MYSQL_TIME end) {
+    REQUESTF_RESULT *request_result;
+    LineWorkDayModel *res;
+
+    request_result = mysql_request_f_result(conn, "CALL p_insert_work_time(%ui, %t, %t) ", &lwd->id, &start, &end);
+    if (get_requestf_code(request_result) == 0) {
+        res = include_line_work_day_work_time_list(conn, lwd);
+    } else {
+        res = NULL;
+    }
+
+    free_requestf_result(request_result);
+
+    return res;
+}
+
+LineWorkDayModel* remove_line_work_day_work_time(MYSQL *conn, LineWorkDayModel *lwd, MYSQL_TIME start, MYSQL_TIME end) {
+    REQUESTF_RESULT *request_result;
+    LineWorkDayModel *res;
+
+    request_result = mysql_request_f_result(conn, "CALL p_remove_line_work_day_work_time(%ui, %t, %t) ", &lwd->id, &start, &end);
+    if (get_requestf_code(request_result) == 0) {
+        res = include_line_work_day_work_time_list(conn, lwd);
+    } else {
+        res = NULL;
+    }
+    
+    free_requestf_result(request_result);
+
+    return res;
+}
+
 LineWorkDayModel* include_line_work_day_line(MYSQL *conn, LineWorkDayModel *lwd) {
     check_line_work_day_on_null("include_line_work_day_line", lwd);
 
@@ -233,6 +297,11 @@ LineWorkDayModel* include_line_work_day_work_time_list(MYSQL *conn, LineWorkDayM
 
     if (lwd->id == 0)
         return NULL;
+
+    if (lwd->work_time_list != NULL) {
+        free_work_time_list(lwd->work_time_list);
+        lwd->work_time_list = NULL;
+    }
 
     if ((lwd->work_time_list = select_work_time(conn, lwd->id)) == NULL) {
         return NULL;

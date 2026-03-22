@@ -7,7 +7,9 @@
 
 void run_line_work_day_tests(MYSQL *conn) {
     LineWorkDayModel *lwd;
-    MYSQL_TIME date;
+    MYSQL_TIME date, end;
+
+    
 
     if (conn == NULL) {
         printf("Test is impossible because conn is NULL\n");
@@ -55,7 +57,7 @@ void run_line_work_day_tests(MYSQL *conn) {
 
     /* -------- create_line_work_day_model -------- */
     printf(TEXT_PADDING "create_line_work_day_model: - ");
-    
+
     memset(&date, 0, sizeof(date));
     date.year = 2026;
     date.month = 2;
@@ -65,8 +67,58 @@ void run_line_work_day_tests(MYSQL *conn) {
         printf("Error\n" TEXT_PADDING "unexpected result\n");
         exit(EXIT_FAILURE);
     }
+    printf("OK\n");
+    
 
-    free_line_work_day(lwd);
+    /* -------- add_line_work_day_work_time -------- */
+    printf(TEXT_PADDING "add_line_work_day_work_time:- ");
+    
+    memset(&date, 0, sizeof(date));
+    memset(&end, 0, sizeof(end));
+
+    date.hour = 10;
+    date.minute = 30;
+    date.second = 0;
+
+    end.hour = 15;
+    end.minute = 0;
+    end.second = 0;
+
+    if (add_line_work_day_work_time(conn, lwd, date, end) == NULL ||
+        get_work_time_list_count(get_line_work_day_work_time(lwd)) != 1) {
+        printf("Error\n" TEXT_PADDING "unexpected result\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("OK\n");
+
+    
+    /* -------- remove_line_work_day_work_time -------- */
+    printf(TEXT_PADDING "remove_line_work_day_work_time:- ");
+
+    date.hour = 12;
+    date.minute = 30;
+    date.second = 0;
+
+    end.hour = 13;
+    end.minute = 0;
+    end.second = 0;
+
+    if (remove_line_work_day_work_time(conn, lwd, date, end) == NULL ||
+        get_work_time_list_count(get_line_work_day_work_time(lwd)) != 2) {
+        printf("Error\n" TEXT_PADDING "unexpected result\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    printf("OK\n");
+
+
+    /* -------- delete_line_work_day -------- */
+    printf(TEXT_PADDING "delete_line_work_day:       - ");
+
+    if (delete_line_work_day(conn, lwd)) {
+        printf("Error\n" TEXT_PADDING "unexpected result\n");
+        exit(EXIT_FAILURE);
+    }
 
     printf("OK\n");
 }

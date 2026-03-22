@@ -63,8 +63,8 @@ void requestf_result_init_query(REQUESTF_RESULT *value, char *query, va_list *li
             }
             /* time param */
             else if (query_c[1] == 't') {
-                mysql_set_date_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
-                query_c = query_c + 2;
+                mysql_set_time_prop_bind(value->prop_binds + i, (MYSQL_TIME*) va_arg(*list, MYSQL_TIME*));
+                query_c++;
             }
             /* unsigned int param */
             else if (query_c[1] == 'u' && query_c[2] == 'i') {

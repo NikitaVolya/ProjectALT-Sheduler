@@ -68,6 +68,14 @@ LineWorkDayModel* select_line_work_day_by_id(MYSQL *conn, unsigned int id);
 
 LineWorkDayModel* select_line_work_day_by_line_id_date(MYSQL *conn, unsigned int line_id, MYSQL_TIME date);
 
+LineWorkDayModel* refresh_line_work_day(MYSQL *conn, LineWorkDayModel **lwd);
+
+int delete_line_work_day(MYSQL *conn, LineWorkDayModel *lwd);
+
+LineWorkDayModel* add_line_work_day_work_time(MYSQL *conn, LineWorkDayModel *lwd, MYSQL_TIME start, MYSQL_TIME end);
+
+LineWorkDayModel* remove_line_work_day_work_time(MYSQL *conn, LineWorkDayModel *lwd, MYSQL_TIME start, MYSQL_TIME end);
+
 LineWorkDayModel* include_line_work_day_line(MYSQL *conn, LineWorkDayModel *lwd);
 
 LineWorkDayModel* include_line_work_day_work_time_list(MYSQL *conn, LineWorkDayModel *lwd);
