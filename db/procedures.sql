@@ -1032,6 +1032,116 @@ END;
 $
 DELIMITER ;
 
+DROP PROCEDURE iF EXISTS p_add_worker_work_day_work_time;
+DELIMITER $
+
+CREATE PROCEDURE p_add_worker_work_day_work_time(
+    IN in_worker_work_day_id INT UNSIGNED,
+    IN in_start_time TIME,
+    IN in_end_time TIME
+)
+BEGIN
+    DECLARE v_role_id INT UNSIGNED;
+    DECLARE v_line_work_day_id INT UNSIGNED;
+    
+    SELECT in_worker_work_day_id, in_start_time, in_end_time;
+
+    /* VALIDATION: PREVENT REMOVING WORK TIME NOT FROM WORKER SCHEDULE AND SELECT line_work_day_id */
+    BEGIN
+        DECLARE EXIT HANDLER
+        FOR NOT FOUND
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot use p_add_worker_work_day_work_time to add work time not from worker_day_id'
+        ; 
+
+        SELECT line_work_day_id, role_id
+        INTO v_line_work_day_id, v_role_id
+        FROM worker_work_day
+        WHERE work_day_id = in_worker_work_day_id
+        ;
+
+    END;
+
+    IF NOT EXISTS (SELECT 1
+                   FROM work_time
+                   WHERE work_day_id = v_line_work_day_id AND
+                   (in_start_time BETWEEN start_time AND end_time) AND
+                   (in_end_time BETWEEN start_time AND end_time)) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No work time exists for this line_work_day on this time'
+        ; 
+    END IF;
+
+    BEGIN
+        DECLARE v_last_time TIME;
+        DECLARE v_current_time TIME;
+        DECLARE v_continue BOOLEAN DEFAULT TRUE;
+
+        DECLARE c_time CURSOR FOR 
+        SELECT tmp.time_v
+        FROM (
+            SELECT start_time AS time_v
+            FROM work_time, worker_work_day AS wwd
+            WHERE wwd.line_work_day_id = v_line_work_day_id AND 
+                  wwd.role_id = v_role_id
+            UNION
+            SELECT end_time AS time_v
+            FROM work_time, worker_work_day AS wwd
+            WHERE wwd.line_work_day_id = v_line_work_day_id AND 
+                  wwd.role_id = v_role_id
+        ) AS tmp
+        WHERE in_start_time < tmp.time_v AND tmp.time_v < in_end_time
+        ORDER BY tmp.time_v
+        ;
+
+        DECLARE CONTINUE HANDLER
+        FOR NOT FOUND
+        SET v_continue = FALSE;
+
+        SET v_current_time = in_start_time;
+
+        OPEN c_time;
+
+        l_time: LOOP
+
+            SET v_last_time = v_current_time;
+
+            FETCH c_time
+            INTO v_current_time
+            ;
+
+            IF v_continue = FALSE THEN
+                LEAVE l_time;
+            END IF;
+
+            SELECT v_last_time, v_current_time;
+
+            IF f_is_enough_workers(v_line_work_day_id, v_role_id, v_last_time, v_current_time) THEN
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'Imposible to add time for this worker on this line'
+                ;
+            END IF;
+
+        END LOOP l_time;
+
+        CLOSE c_time;
+
+        
+        SELECT v_current_time, in_end_time;
+
+        IF f_is_enough_workers(v_line_work_day_id, v_role_id, v_current_time, in_end_time) THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Imposible to add time for this worker on this line'
+            ;
+        END IF;
+
+    END;
+    
+    CALL p_insert_work_time(in_worker_work_day_id, in_start_time, in_end_time);
+END;
+$
+DELIMITER ;
+
 
 DROP PROCEDURE IF EXISTS p_generate_line_work_time_chunk;
 /*
@@ -1391,12 +1501,12 @@ BEGIN
 
                 /* Insert time for worker and for line */
                 CALL p_insert_work_time(
-                        v_worker_work_day_id,
+                        v_line_work_day_id,
                         v_start_time,
                         v_end_time
                 );
-                CALL p_insert_work_time(
-                        v_line_work_day_id,
+                CALL p_add_worker_work_day_work_time(
+                        v_worker_work_day_id,
                         v_start_time,
                         v_end_time
                 );
