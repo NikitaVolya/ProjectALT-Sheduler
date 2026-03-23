@@ -7,6 +7,7 @@
 
 void run_worker_work_day_tests(MYSQL *conn) {
     WorkerWorkDayModel *wwd;
+    MYSQL_TIME start, end;
 
     if (conn == NULL) {
         printf("Test is impossible because conn is NULL\n");
@@ -43,6 +44,16 @@ void run_worker_work_day_tests(MYSQL *conn) {
         exit(EXIT_FAILURE);
     }
     printf("OK\n");
+
+    /* -------- include_worker_work_day_line_work_day -------- */
+    printf(TEXT_PADDING "include_worker_work_day_line_work_day:- ");
+
+    if (include_worker_work_day_line_work_day(conn, wwd) == NULL) {
+        printf("Error\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("OK\n");
+
     
     /* -------- include_work_time_list -------- */
     printf(TEXT_PADDING "include_work_time_list:       - ");
@@ -58,6 +69,26 @@ void run_worker_work_day_tests(MYSQL *conn) {
     }
     printf("OK\n");
 
+    /* -------- remove_worker_work_day_work_time -------- */
+    printf(TEXT_PADDING "remove_worker_work_day_work_time:- ");
+
+    memset(&start, 0, sizeof(start));
+    memset(&end, 0, sizeof(end));
+
+    start.hour = 10;
+    start.minute = 30;
+    start.second = 0;
+
+    end.hour = 11;
+    end.minute = 0;
+    end.second = 0;
+
+    if (remove_worker_work_day_work_time(conn, wwd, start, end) == NULL ||
+        get_work_time_list_count(get_worker_work_day_work_time(wwd)) != 2) {
+        printf("Error\n" TEXT_PADDING "unexpected result\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("OK\n");
     
     free_worker_work_day(wwd);
 }

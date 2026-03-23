@@ -9,7 +9,6 @@ void run_line_work_day_tests(MYSQL *conn) {
     LineWorkDayModel *lwd;
     MYSQL_TIME date, end;
 
-    
 
     if (conn == NULL) {
         printf("Test is impossible because conn is NULL\n");

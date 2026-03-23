@@ -37,6 +37,11 @@ LineModel* get_worker_work_day_line(WorkerWorkDayModel *wwd) {
     return wwd->line;
 }
 
+LineWorkDayModel* get_worker_work_day_line_work_day(WorkerWorkDayModel *wwd) {
+    check_worker_work_day_on_null("get_worker_work_day_line_work_day", wwd);
+    return wwd->lwd;
+}
+
 WorkTimeList* get_worker_work_day_work_time(WorkerWorkDayModel *wwd) {
     check_worker_work_day_on_null("get_worker_work_day_work_time", wwd);
     return wwd->work_time_list;
@@ -91,6 +96,8 @@ void free_worker_work_day(void *value) {
         free_worker(wwd->worker);
     if (wwd->work_time_list != NULL)
         free_work_time_list(wwd->work_time_list);
+    if (wwd->lwd != NULL)
+        free_line_work_day(wwd->lwd);
 
     free(wwd);
 }
@@ -109,15 +116,16 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
         return NULL;
     }
 
+    res->lwd = NULL;
     res->worker = NULL;
     res->line = NULL;
     res->work_time_list = NULL;
 
     request_result = mysql_request_f_result(conn, 
-        "SELECT wd.week_id, wwd.worker_id, wwd.line_id, wd.date "
+        "SELECT wd.week_id, wwd.line_work_day_id, wwd.worker_id, wwd.line_id, wd.date "
         "FROM worker_work_day AS wwd, work_day AS wd "
         "WHERE wwd.work_day_id = wd.id AND wd.id = %ui ", &id,
-        MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_DATE);
+        MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_UINT, MYSQL_BIND_DATE);
 
     if (get_requestf_code(request_result) != 0) {
         fprintf(stderr, "Error while worker_work_day selecting\n");
@@ -127,7 +135,7 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
     }
 
     if (requestf_result_fetch(request_result,
-        &res->week_id, &res->worker_id, &res->line_id, &res->date) == 0) {
+        &res->week_id, &res->line_work_day_id, &res->worker_id, &res->line_id, &res->date) == 0) {
         res->id = id;
     } else {
         free_worker_work_day(res);
@@ -139,8 +147,25 @@ WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id) {
     return res;
 }
 
+
+WorkerWorkDayModel* remove_worker_work_day_work_time(MYSQL *conn, WorkerWorkDayModel *wwd, MYSQL_TIME start, MYSQL_TIME end) {
+    REQUESTF_RESULT *request_result;
+    WorkerWorkDayModel *res;
+
+    request_result = mysql_request_f_result(conn, "CALL p_remove_work_time(%ui, %t, %t) ", &wwd->id, &start, &end);
+    if (get_requestf_code(request_result) == 0) {
+        res = include_worker_work_line_work_time_list(conn, wwd);
+    } else {
+        res = NULL;
+    }
+    
+    free_requestf_result(request_result);
+
+    return res;
+}
+
 WorkerWorkDayModel* include_worker_work_day_worker(MYSQL *conn, WorkerWorkDayModel *wwd) {
-    check_worker_work_day_on_null("include_worker", wwd);
+    check_worker_work_day_on_null("include_worker_work_day_worker", wwd);
 
     if (wwd->id == 0)
         return NULL;
@@ -159,7 +184,7 @@ WorkerWorkDayModel* include_worker_work_day_worker(MYSQL *conn, WorkerWorkDayMod
 }
 
 WorkerWorkDayModel* include_worker_work_day_line(MYSQL *conn, WorkerWorkDayModel *wwd) {
-    check_worker_work_day_on_null("include_line", wwd);
+    check_worker_work_day_on_null("include_worker_work_day_line", wwd);
 
     if (wwd->id == 0)
         return NULL;
@@ -177,12 +202,36 @@ WorkerWorkDayModel* include_worker_work_day_line(MYSQL *conn, WorkerWorkDayModel
     return wwd;
 }
 
-
-WorkerWorkDayModel* include_worker_work_line_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd) {
-    check_worker_work_day_on_null("include_work_time_list", wwd);
+WorkerWorkDayModel* include_worker_work_day_line_work_day(MYSQL *conn, WorkerWorkDayModel *wwd) {
+    check_worker_work_day_on_null("include_worker_work_day_line_work_day", wwd);
 
     if (wwd->id == 0)
         return NULL;
+    
+    if (wwd->lwd != NULL) {
+        free_line_work_day(wwd->lwd);
+        wwd->lwd = NULL;
+    }
+
+    if ((wwd->lwd = select_line_work_day_by_id(conn, wwd->line_work_day_id)) == NULL) {
+        fprintf(stderr, "Error while including LineWorkDayModel {%d} in WorkerWorkDayModel\n", wwd->line_work_day_id);
+        return NULL;
+    }
+
+    return wwd;
+}
+
+
+WorkerWorkDayModel* include_worker_work_line_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd) {
+    check_worker_work_day_on_null("include_worker_work_line_work_time_list", wwd);
+
+    if (wwd->id == 0)
+        return NULL;
+
+    if (wwd->work_time_list != NULL) {
+        free_work_time_list(wwd->work_time_list);
+        wwd->work_time_list = NULL;
+    }
 
     if ((wwd->work_time_list = select_work_time(conn, wwd->id)) == NULL) {
         return NULL;

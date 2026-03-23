@@ -2,14 +2,16 @@
 #define _WORKER_WORK_DAY_H_
 
 #include "worker_model.h"
-#include "line_model.h"
-#include "work_time_list.h"
+#include "line_work_day_model.h"
 #include "queue.h"
 
 
 typedef struct {
     unsigned int id, week_id;
     MYSQL_TIME date;
+
+    unsigned int line_work_day_id;
+    LineWorkDayModel *lwd;
 
     unsigned int worker_id;
     WorkerModel *worker;
@@ -35,6 +37,8 @@ MYSQL_TIME get_worker_work_date(WorkerWorkDayModel *wwd);
 WorkerModel* get_worker_work_day_worker(WorkerWorkDayModel *wwd);
 
 LineModel* get_worker_work_day_line(WorkerWorkDayModel *wwd);
+
+LineWorkDayModel* get_worker_work_day_line_work_day(WorkerWorkDayModel *wwd);
 
 WorkTimeList* get_worker_work_day_work_time(WorkerWorkDayModel *wwd);
 
@@ -63,9 +67,13 @@ void free_worker_work_day(void *wwd);
 /* ================================ */
 WorkerWorkDayModel* select_worker_work_day_by_id(MYSQL *conn, unsigned int id);
 
+WorkerWorkDayModel* remove_worker_work_day_work_time(MYSQL *conn, WorkerWorkDayModel *wwd, MYSQL_TIME start, MYSQL_TIME end);
+
 WorkerWorkDayModel* include_worker_work_day_worker(MYSQL *conn, WorkerWorkDayModel *wwd);
 
 WorkerWorkDayModel* include_worker_work_day_line(MYSQL *conn, WorkerWorkDayModel *wwd);
+
+WorkerWorkDayModel* include_worker_work_day_line_work_day(MYSQL *conn, WorkerWorkDayModel *wwd);
 
 WorkerWorkDayModel* include_worker_work_line_work_time_list(MYSQL *conn, WorkerWorkDayModel *wwd);
 
