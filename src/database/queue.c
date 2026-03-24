@@ -116,6 +116,31 @@ void* get_queue_element(Queue *queue, size_t index) {
     return c->value;
 }
 
+
+void remove_queue_element(Queue *queue, void *value) {
+    QueueElement *c, *tmp;
+    
+    if (queue->start == value) {
+        pop_queue_element(queue);
+    } else {
+
+        c = queue->start;
+        while (c->next != value && c->next != NULL) {
+            c = c->next;
+        }
+
+        if (c->next != NULL) {
+
+            tmp = c->next;
+            c->next = tmp->next;
+
+            free(tmp);
+        }
+
+    }
+
+}
+
 void* queue_find_first_element(Queue* queue, int (*predicate)(void*)) {
     QueueElement *current;
 

@@ -42,6 +42,8 @@ void* pop_queue_element(Queue *queue);
 
 void* get_queue_element(Queue *queue, size_t index);
 
+void remove_queue_element(Queue *queue, void *value);
+
 void* queue_find_first_element(Queue *queue, int (*predicate)(void*));
 
 void* create_queue_copy(Queue *queue, void* (*element_copy_f)(void*));
