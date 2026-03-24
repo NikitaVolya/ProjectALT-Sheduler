@@ -26,7 +26,7 @@ void start_app_interface() {
     SDL_Init(SDL_INIT_VIDEO);
 }
 
-void quit_app_interface() {
+void close_app_interface() {
 
     if (windows == NULL) {
 
@@ -45,14 +45,14 @@ void raise_app_interface_error(const char *message, int code) {
         exit(EXIT_FAILURE);
     } 
 
-    quit_app_interface();
+    close_app_interface();
     fprintf(stderr, "%s", message);
     exit(code);
 }
 
 AppWindow* create_app_window(const char* title,
                              int x, int y, int w, int h,
-                             Uint32 flags) {
+                             Uint32 flags, AppWindow *parent) {
     AppWindow *res;
 
     if (windows == NULL) {
@@ -73,6 +73,8 @@ AppWindow* create_app_window(const char* title,
         raise_app_interface_error("", EXIT_FAILURE);
     }
 
+    SDL_HideWindow(res->window);
+
     res->renderer = SDL_CreateRenderer(res->window, -1, SDL_RENDERER_ACCELERATED);
     if(NULL == res->renderer)
     {
@@ -82,12 +84,58 @@ AppWindow* create_app_window(const char* title,
         raise_app_interface_error("", EXIT_FAILURE);
     }
 
+    res->parent = parent;
+
     push_queue_element(windows, res);
 
     return res;
 }
 
-const char* get_window_titl(AppWindow *app_window) {
+void draw_app_window(AppWindow *app_window) {
+
+    /* clearing window */
+    if(SDL_SetRenderDrawColor(app_window->renderer, 
+                              app_window->background_color.r, 
+                              app_window->background_color.g, 
+                              app_window->background_color.b, 
+                              app_window->background_color.a) < 0)
+        raise_app_interface_error("Error SDL_SetRenderDrawColor", EXIT_FAILURE);
+
+    if(SDL_RenderClear(app_window->renderer) < 0)
+        raise_app_interface_error("Error SDL_RenderClear", EXIT_FAILURE);
+    
+    /* dsiplay changes */
+    SDL_RenderPresent(app_window->renderer);
+}
+
+void show_app_window(AppWindow *app_window) {
+    SDL_ShowWindow(app_window->window);
+    draw_app_window(app_window);
+}
+
+void hide_app_window(AppWindow *app_window) {
+    SDL_HideWindow(app_window->window);
+}
+
+void show_dialog_app_window(AppWindow *app_window, int hide_parent) {
+
+    if (hide_parent && app_window->parent != NULL)
+        hide_app_window(app_window->parent);
+
+    show_app_window(app_window);
+}
+
+void set_app_window_background_color(AppWindow *app_window, ColorRGBA color) {
+
+    app_window->background_color = color;
+    draw_app_window(app_window);
+}
+
+ColorRGBA get_app_window_background_color(AppWindow *app_window) {
+    return app_window->background_color;
+}
+
+const char* get_app_window_title(AppWindow *app_window) {
     return SDL_GetWindowTitle(app_window->window);
 }
 

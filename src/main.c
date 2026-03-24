@@ -12,13 +12,14 @@ int main() {
 
     app_window = create_app_window("test", 
     SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-    640, 480, SDL_WINDOW_SHOWN);
+    640, 480, SDL_WINDOW_SHOWN, NULL);
 
-    set_app_window_title(app_window, "Hello, world!"); 
+    set_app_window_background_color(app_window, create_colorRGBA(255, 0, 0, 125));
+    show_app_window(app_window);
     
-    SDL_Delay(3000);
+    SDL_Delay(1000);
 
-    quit_app_interface();
+    close_app_interface();
     
     exit(EXIT_SUCCESS);
 }

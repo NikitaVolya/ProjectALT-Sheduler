@@ -125,7 +125,7 @@ void remove_queue_element(Queue *queue, void *value) {
     } else {
 
         c = queue->start;
-        while (c->next != value && c->next != NULL) {
+        while (c->next != NULL && c->next->value != value) {
             c = c->next;
         }
 
@@ -133,7 +133,6 @@ void remove_queue_element(Queue *queue, void *value) {
 
             tmp = c->next;
             c->next = tmp->next;
-
             free(tmp);
         }
 
